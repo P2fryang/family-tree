@@ -1,6 +1,6 @@
 # Family Tree
 
-A small, personal family tree app: one HTML file, vanilla JS, no build step, no dependencies. Doodle / graph-paper look, pastel and warm.
+A small simple personal family tree app.
 
 ## Run
 
@@ -8,7 +8,7 @@ Open `family-tree.html` in a browser (or host it anywhere static). Data is saved
 
 ## Features
 
-- **People:** first / middle / last name, other names, gender (free text with suggestions), born / died (free-text dates, optional times, places), deceased flag, age, significant dates, biography, sources, photo, card colour.
+- **People:** first / middle / last name, other names, gender, born / died, deceased flag, age, significant dates, biography, sources, photo, card colour.
 - **Relationships:** parents (biological, adopted, step, foster), siblings (derived from shared parents), spouses with status (married, partner, engaged, separated, divorced, widowed), children (derived).
 - **Canvas:** drag to pan, scroll or pinch to zoom, **Fit** button. Background pattern (dots, grid, lines, plain) with custom paper and pattern colours.
 - **Search:** matches names, other names and biography; results show birth year and parents to tell same-name people apart.
