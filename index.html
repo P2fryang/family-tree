@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Family Tree</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&display=swap">
+<style>
+:root{--paper:#fbf6ea;--grid:#eadfc6;--ink:#2b2a33;--muted:#7a7468;--card:#fffdf6;--pink:#f9cfd2;--blue:#cfe3f3;--butter:#fbe9a8;--sage:#d6e8d0;--pop:#ff8a6b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#23212a;--grid:#302d3a;--ink:#f1ead9;--muted:#a59f92;--card:#2d2a35;--pink:#6a4650;--blue:#3f5568;--butter:#6b5f34;--sage:#46604a;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#23212a;--grid:#302d3a;--ink:#f1ead9;--muted:#a59f92;--card:#2d2a35;--pink:#6a4650;--blue:#3f5568;--butter:#6b5f34;--sage:#46604a;color-scheme:dark}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;font:18px/1.25 "Patrick Hand","Comic Sans MS",cursive,sans-serif;color:var(--ink);background:var(--paper)}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:2px solid var(--ink);background:var(--paper)}
+h1{font:700 34px "Caveat","Comic Sans MS",cursive;margin:0 auto 0 0;transform:rotate(-1.5deg)}
+h1 u{text-decoration-color:var(--pop);text-decoration-thickness:3px;text-underline-offset:4px}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{cursor:pointer;background:var(--butter);border:2px solid var(--ink);border-radius:10px 14px 11px 15px/14px 10px 15px 11px;padding:3px 12px;box-shadow:2px 2px 0 var(--ink)}
+button:active{transform:translate(2px,2px);box-shadow:none}
+button.pop{background:var(--pop);color:#2b2a33}
+#stage{flex:1;overflow:hidden;position:relative;touch-action:none;cursor:grab;background-color:var(--paper)}
+#cv{position:absolute;left:0;top:0;transform-origin:0 0}
+.zm{position:absolute;left:12px;bottom:12px;display:flex;gap:6px}
+header select,header input[type=color]{background:var(--paper);border:2px solid var(--ink);border-radius:8px;height:30px;padding:0 4px}
+#q{width:140px;height:30px;box-sizing:border-box;padding:0 8px;background:var(--paper);border:2px solid var(--ink);border-radius:10px 14px 11px 15px/14px 10px 15px 11px}
+#sr{position:absolute;top:110%;left:0;z-index:5;min-width:300px;background:var(--card);border:2px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 var(--ink)}
+#sr:empty{display:none}#sr div{padding:4px 10px;cursor:pointer}#sr div:hover{background:var(--butter);color:#2b2a33}
+.sw{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sw .s{width:24px;height:24px;border:2px solid var(--ink);border-radius:50%;cursor:pointer}
+.sw .s.on{outline:3px dashed var(--pop);outline-offset:2px}#pn .sw input{width:34px;display:inline-block;padding:0;margin:0}
+#pn select.ms{display:inline-block;width:auto;margin:0 6px 6px 0}
+#cv svg{position:absolute;inset:0;pointer-events:none}
+.n{position:absolute;width:156px;height:82px;box-sizing:border-box;padding:8px 10px;overflow:hidden;cursor:pointer;background:var(--card);border:2px solid var(--ink);
+border-radius:12px 18px 14px 20px/18px 12px 20px 14px;box-shadow:3px 3px 0 var(--ink);transform:rotate(calc(var(--r)*1deg))}
+
+.n.sel{outline:3px dashed var(--pop);outline-offset:3px}
+.n b{display:block;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n i,.n small{display:block;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.hint{position:absolute;left:50%;top:80px;transform:translateX(-50%) rotate(-2deg);font:700 30px "Caveat",cursive;text-align:center;color:var(--muted)}
+#pn{position:fixed;right:0;top:0;bottom:0;width:min(370px,100%);box-sizing:border-box;overflow:auto;padding:0;
+background:var(--card);border-left:2px solid var(--ink);box-shadow:-4px 0 0 var(--grid)}
+#pn[hidden]{display:none}
+#pn label{display:block;margin:8px 0;font-size:15px;color:var(--muted)}
+#pn input,#pn textarea,#pn select,dialog textarea{display:block;width:100%;box-sizing:border-box;margin-top:2px;padding:4px 8px;background:var(--paper);border:2px solid var(--ink);border-radius:8px 12px 9px 13px/12px 8px 13px 9px}
+#pn textarea{min-height:64px;resize:vertical}
+.row{display:flex;gap:8px}.row label{flex:1}
+h4{font:700 24px "Caveat",cursive;margin:12px 0 4px}
+.chip{display:inline-block;margin:0 6px 6px 0;padding:1px 4px 1px 10px;background:var(--sage);border:2px solid var(--ink);border-radius:14px;cursor:pointer}
+.chip b{padding:0 6px;color:var(--pop)}
+.ph{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;background:var(--card);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 6px;border-bottom:2px dashed var(--ink)}.ph h4{margin:0}.pb{padding:0 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.gp{display:flex;flex-wrap:wrap;margin-bottom:4px}.gp .chip{padding:1px 10px}.chip.on{background:var(--butter);color:#2b2a33}
+.n.pic{padding-right:50px}.n img{position:absolute;right:6px;top:6px;width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);object-fit:cover}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+dialog{width:min(560px,92vw);background:var(--card);color:var(--ink);border:2px solid var(--ink);border-radius:14px 20px 16px 22px/20px 14px 22px 16px;box-shadow:5px 5px 0 var(--ink)}
+dialog textarea{height:240px;font:14px/1.3 ui-monospace,monospace}
+</style>
+</head>
+<body>
+<header>
+<h1>Family <u>Tree</u></h1>
+<button class="pop" data-a="add">＋ Person</button>
+<button data-a="expall">Export all</button>
+<button data-a="imp">Import</button>
+<div style="position:relative"><input id="q" placeholder="Search…" autocomplete="off"><div id="sr"></div></div>
+<select id="pat" title="Paper"><option value="dots">dots</option><option value="grid">grid</option><option value="lines">lines</option><option value="none">plain</option></select><input type="color" id="bgc" title="Paper colour"><input type="color" id="pc" title="Dot/line colour"><button data-a="undo" title="Undo">↶</button><button data-a="redo" title="Redo">↷</button><button data-a="bgr" title="Reset paper colour">↺</button>
+</header>
+<div id="stage"><div id="cv"></div><div class="zm"><button data-a="zi">＋</button><button data-a="zo">－</button><button data-a="fit">Fit</button><button id="uf" data-a="unfocus" hidden>Show all</button></div></div>
+<aside id="pn" hidden></aside>
+<dialog id="io"><h4 id="iot"></h4><textarea id="ta" spellcheck="false"></textarea>
+<div class="bar"><button data-a="copy">Copy</button><button data-a="ged">JSON → GEDCOM 7</button><button class="pop" data-a="merge">Import this</button><input type="file" id="fi" accept=".json,application/json"><button data-a="ioclose">Close</button></div>
+<p id="msg"></p></dialog>
+<script>
+const K="famtree.v1",CW=200,RH=140,CH=82;
+let S={people:{}},sel=null,V={x:20,y:20,k:1},FS=null,H=[],R=[],last="",lt=0;const PT=["biological","adopted","step","foster"],GN=["female","male","nonbinary","genderqueer","genderfluid","agender","trans woman","trans man","intersex","two-spirit","other","unknown"];const MS=["married","partner","engaged","separated","divorced","widowed"];
+try{S=JSON.parse(localStorage.getItem(K))||S}catch(e){}
+const P=()=>S.people,$=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const nm=i=>{const x=P()[i];return x?[x.first,x.middle,x.last].filter(Boolean).join(" ")||"Unnamed":"?"};
+const yr=x=>(String(x.born||"").match(/\d{4}/)||[""])[0];
+const lab=i=>{const x=P()[i];return nm(i)+(yr(x)?` (b. ${yr(x)})`:"")+(x.parents.length?` · child of ${x.parents.map(q=>nm(q)).join(" & ")}`:"")};
+const blank=id=>({id,first:"",middle:"",last:"",other:"",gender:"",color:"",born:"",died:"",dates:"",bio:"",parents:[],spouses:[],ms:{},pt:{},photo:"",bplace:"",dplace:"",src:"",dec:false,btime:"",dtime:""});
+const kids=id=>Object.keys(P()).filter(i=>P()[i].parents.includes(id));
+const sibs=id=>Object.keys(P()).filter(i=>i!==id&&P()[i].parents.some(q=>P()[id].parents.includes(q)));
+
+function clean(){ // keep relations valid and spouses symmetric
+  const p=P(),ok=i=>p[i];
+  for(const i in p){const x=p[i];if(x.name!==undefined){const w=String(x.name).trim().split(/\s+/).filter(Boolean);if(!x.first&&!x.last){x.first=w[0]||"";x.last=w.length>1?w[w.length-1]:"";x.middle=w.slice(1,-1).join(" ")}delete x.name}x.first??="";x.middle??="";x.last??="";x.color??="";x.ms={...x.ms};x.pt={...x.pt};x.parents=[...new Set(x.parents||[])].filter(a=>ok(a)&&a!==i);x.spouses=[...new Set(x.spouses||[])].filter(a=>ok(a)&&a!==i)}
+  for(const i in p)p[i].spouses.forEach(s=>{if(!p[s].spouses.includes(i))p[s].spouses.push(i);p[i].ms[s]=p[s].ms[i]=p[i].ms[s]||p[s].ms[i]||"married"});
+}
+function link(k,a,b){const p=P();
+  if(k==="parents")p[a].parents.push(b);
+  else if(k==="children")p[b].parents.push(a);
+  else if(k==="siblings"){const pa=p[a].parents,pb=p[b].parents;
+    if(pa.length)p[b].parents=[...new Set([...pb,...pa])];else if(pb.length)p[a].parents=[...pb];
+    else{const id=uid();p[id]={...blank(id),first:"(unknown parent)"};p[a].parents=[id];p[b].parents=[id]}}
+  else{p[a].spouses.push(b);p[b].spouses.push(a)}clean()}
+function unlink(k,a,b){const p=P(),d=(arr,v)=>arr.splice(0,arr.length,...arr.filter(x=>x!==v));
+  if(k==="parents")d(p[a].parents,b);else if(k==="children")d(p[b].parents,a);else if(k==="siblings")p[b].parents=p[b].parents.filter(q=>!p[a].parents.includes(q));else{d(p[a].spouses,b);d(p[b].spouses,a)}}
+
+function edges(p,pos){
+  const ids=Object.keys(p),fam={},o=[],adj=(a,b)=>pos[a].y===pos[b].y&&Math.abs(pos[a].x-pos[b].x)===CW,
+    mk={married:"♥",partner:"♡",engaged:"◇",separated:"sep.",divorced:"div.",widowed:"wid."};
+  // couples: a short line between adjacent cards (status symbol above it); otherwise a bracket underneath
+  ids.forEach(i=>p[i].spouses.forEach(s=>{if(s<=i)return;const a=pos[i],b=pos[s],t=p[i].ms[s]||"married";
+    if(adj(i,s)){const l=Math.min(a.x,b.x)+156,y=a.y+41;o.push(`<path class="sp ${t}" d="M${l} ${y}h${CW-156}"/><text class="st" x="${l+(CW-156)/2}" y="${y-6}" text-anchor="middle">${mk[t]||t}</text>`)}
+    else o.push(`<path class="sp ${t}" d="M${a.x+78} ${a.y+CH}v12H${b.x+78}V${b.y+CH}"/>`)}));
+  // children: one family = one trunk + one bus + one drop per child
+  ids.forEach(i=>{const ps=[...p[i].parents].sort();if(ps.length)(fam[ps.join("|")]??={ps,ch:[]}).ch.push(i)});
+  const rn={};
+  Object.values(fam).sort((a,b)=>pos[a.ch[0]].x-pos[b.ch[0]].x).forEach(f=>{
+    const cy=pos[f.ch[0]].y,n=rn[cy]=(rn[cy]||0)+1,by=cy-38+(n%3)*9,src=[];let ps=f.ps;
+    if(ps.length>1&&p[ps[0]].spouses.includes(ps[1])&&adj(ps[0],ps[1])){const a=pos[ps[0]],b=pos[ps[1]];src.push([Math.min(a.x,b.x)+156+(CW-156)/2,a.y+41]);ps=ps.slice(2)}
+    ps.forEach(q=>src.push([pos[q].x+78,pos[q].y+CH]));
+    const xs=[...src.map(s=>s[0]),...f.ch.map(c=>pos[c].x+78)];
+    o.push(`<path d="${src.map(s=>`M${s[0]} ${s[1]}V${by}`).join("")}M${Math.min(...xs)} ${by}H${Math.max(...xs)}"/>`);
+    f.ch.forEach(c=>o.push(`<path class="pt-${p[c].pt[f.ps[0]]||"biological"}" d="M${pos[c].x+78} ${by}V${pos[c].y}"/>`))});
+  return o.join("")}
+function layout(){
+  const p=VP(),ids=Object.keys(p),g={};ids.forEach(i=>g[i]=0);
+  for(let n=0;n<ids.length+2;n++){let ch=false;
+    ids.forEach(i=>{let v=g[i];p[i].parents.forEach(q=>v=Math.max(v,g[q]+1));p[i].spouses.forEach(q=>v=Math.max(v,g[q]));if(v!==g[i]){g[i]=v;ch=true}});
+    if(!ch)break}
+  const rows=[];ids.forEach(i=>(rows[g[i]]??=[]).push(i));
+  const max=Math.max(0,...rows.filter(Boolean).map(r=>r.length)),pos={};
+  rows.forEach((r,gi)=>{
+    const off=(max-r.length)*CW/2+24;
+    const key=i=>{const ps=p[i].parents.filter(q=>pos[q]);return ps.length?ps.reduce((a,q)=>a+pos[q].x,0)/ps.length:1e9};
+    r.sort((a,b)=>key(a)-key(b)||nm(a).localeCompare(nm(b)));
+    const out=[],seen=new Set();
+    r.forEach(i=>{if(seen.has(i))return;seen.add(i);out.push(i);p[i].spouses.forEach(s=>{if(g[s]===gi&&!seen.has(s)){seen.add(s);out.push(s)}})});
+    out.forEach((i,k)=>pos[i]={x:off+k*CW,y:gi*RH+30});
+  });
+  return {pos,w:max*CW+48,h:rows.length*RH+40};
+}
+
+function render(){
+  bg();snap();$("#uf").hidden=!FS;
+  try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
+  const p=VP(),ids=Object.keys(p),cv=$("#cv");
+  if(!ids.length){cv.style.height="300px";cv.innerHTML='<div class="hint">A blank page ✎<br>add your first person</div>';return}
+  const {pos,w,h}=layout();const ln=edges(p,pos);
+  
+  const sh=s=>(String(s).match(/\d{4}/)||[s])[0];const life=x=>{const a=age(x);return (x.born&&x.died?`${sh(x.born)}–${sh(x.died)}`:x.born?"b. "+sh(x.born):x.died?"d. "+sh(x.died):x.dec?"deceased":"")+(a!==""?` · ${a}`:"")};
+  cv.style.width=w+"px";cv.style.height=h+"px";
+  cv.innerHTML=`<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop)}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5}.sp.widowed{stroke:var(--muted)}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>`+
+    ids.map(i=>{const x=p[i],c=pos[i],r=([...i].reduce((a,ch)=>a+ch.charCodeAt(0),0)%5-2)*.6;
+      return `<div class="n${i===sel?" sel":""}${x.photo?" pic":""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color?`background:${esc(x.color)};color:#2b2a33`:""}">${x.photo?`<img src="${esc(x.photo)}" alt="">`:""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x))}</small></div>`}).join("");
+}
+
+function panel(){
+  const x=P()[sel],pn=$("#pn");
+  if(!x){pn.hidden=true;return}
+  pn.hidden=false;
+  const f=(k,l)=>`<label>${l}<input data-f="${k}" value="${esc(x[k])}"></label>`;
+  const rel=(k,l,list)=>`<h4>${l}</h4>${list.map(i=>`<span class="chip" data-go="${i}">${esc(nm(i))}<b data-un="${k}:${i}">×</b></span>${k==="parents"?`<select class="ms" data-pt="${i}">${PT.map(s=>`<option${(x.pt[i]||"biological")===s?" selected":""}>${s}</option>`).join("")}</select>`:""}${k==="spouses"?`<select class="ms" data-ms="${i}">${MS.map(s=>`<option${x.ms[i]===s?" selected":""}>${s}</option>`).join("")}</select>`:""}`).join("")}
+    <div class="row"><select data-link="${k}"><option value="">link existing…</option>${Object.keys(P()).filter(i=>i!==sel&&!list.includes(i)).map(i=>`<option value="${i}">${esc(lab(i))}</option>`).join("")}</select><button data-new="${k}">＋ new</button></div>`;
+  pn.innerHTML=`<div class="ph"><h4>Details</h4><button data-a="close">✕</button></div><div class="pb">
+  <div class="row">${f("first","First")}${f("middle","Middle")}${f("last","Last")}</div>${f("other","Other names / nicknames")}
+  <label>Gender<input data-f="gender" list="gl" value="${esc(x.gender)}" placeholder="choose or type your own"><datalist id="gl">${GN.map(g=>`<option>${g}</option>`).join("")}</datalist></label>
+  <div class="row">${f("born","Born")}${f("died","Died")}</div>
+  <label><input type="checkbox" data-c="dec"${x.dec?" checked":""} style="display:inline;width:auto"> Deceased (date unknown)</label>
+  <div class="row">${f("bplace","Birth place")}${f("dplace","Death place")}</div>
+  <div class="row"><label>Birth time (optional)<input type="time" data-f="btime" value="${esc(x.btime)}"></label><label>Death time (optional)<input type="time" data-f="dtime" value="${esc(x.dtime)}"></label></div>
+  <h4>Card colour</h4><div class="sw">${["","#f9cfd2","#fbe0c4","#fbe9a8","#d6e8d0","#c9ece3","#cfe3f3","#ddd3f0"].map(c=>`<span class="s${x.color===c?" on":""}" data-col="${c}" style="background:${c||"var(--card)"}"></span>`).join("")}<input type="color" data-f="color" value="${x.color||"#fffdf6"}"></div>
+  <label>Significant dates (one per line, e.g. Married: 1974-06-02)<textarea data-f="dates">${esc(x.dates)}</textarea></label>
+  <label>Biography<textarea data-f="bio" style="min-height:110px">${esc(x.bio)}</textarea></label>
+  <label>Sources / evidence<textarea data-f="src">${esc(x.src)}</textarea></label>
+  <label>Photo<input type="file" accept="image/*" data-photo></label>${x.photo?`<button data-a="rmphoto">Remove photo</button>`:""}
+  ${rel("parents","Parents",x.parents)}${rel("siblings","Siblings",sibs(sel))}${rel("spouses","Spouse(s)",x.spouses)}${rel("children","Children",kids(sel))}
+  <h4>Focus view</h4><div class="row"><select id="fm"><option value="up">ancestors</option><option value="down">descendants</option><option value="hg">ancestors + descendants</option><option value="all">connected family</option></select><button data-a="focus">Focus</button></div>
+  <h4>How are we related?</h4><select id="rw"><option value="">pick someone…</option>${Object.keys(P()).filter(i=>i!==sel).map(i=>`<option value="${i}">${esc(lab(i))}</option>`).join("")}</select><p id="rr"></p>
+  <h4>Export branch</h4><div class="row"><select id="scope"><option value="down">this person + descendants</option><option value="up">this person + ancestors</option><option value="all">whole connected family</option></select><button data-a="expbr">Export</button></div>
+  <div class="bar"><button data-a="del">Delete person</button></div></div>`;
+}
+
+function pick(i){sel=i;render();panel()}
+function add(rel){
+  const id=uid();P()[id]=blank(id);
+  if(rel)link(rel.k,rel.of,id);
+  pick(id);center(id);$("#pn [data-f=first]")?.focus();
+}
+function branch(id,mode){
+  const p=P(),set=new Set([id]),q=[id];
+  while(q.length){const c=q.shift();
+    const nx=mode==="up"?p[c].parents:mode==="down"?kids(c):[...p[c].parents,...kids(c),...p[c].spouses];
+    nx.forEach(n=>{if(!set.has(n)){set.add(n);q.push(n)}})}
+  [...set].forEach(i=>p[i].spouses.forEach(s=>set.add(s)));
+  return set;
+}
+function dump(set){
+  const p=P(),ids=set||new Set(Object.keys(p));
+  return JSON.stringify({app:"famtree",v:1,people:[...ids].map(i=>({...p[i],parents:p[i].parents.filter(x=>ids.has(x)),spouses:p[i].spouses.filter(x=>ids.has(x))}))},null,1);
+}
+function openIO(title,text){$("#iot").textContent=title;$("#ta").value=text;$("#msg").textContent="";$("#io").showModal()}
+function merge(){
+  try{
+    const tx=$("#ta").value.trim(),d=/^0 HEAD/.test(tx)?{people:fromGed(tx)}:JSON.parse(tx),list=Array.isArray(d)?d:d.people;let n=0;
+    list.forEach(x=>{if(x&&typeof x.id==="string"){P()[x.id]={...blank(x.id),...x};n++}});
+    clean();render();panel();$("#msg").textContent=`Imported ${n} people (matching ids are updated, others added).`;
+  }catch(e){$("#msg").textContent="That doesn’t look like a family tree export."}
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target,un=t.closest("[data-un]");
+  if(un){const [k,i]=un.dataset.un.split(":");unlink(k,sel,i);render();panel();return}
+  const ht=t.closest("[data-hit]");if(ht){FS=null;sr.innerHTML="";q.value="";pick(ht.dataset.hit);return center(ht.dataset.hit)}
+  const sw=t.closest("[data-col]");if(sw){P()[sel].color=sw.dataset.col;render();panel();return}
+  const go=t.closest("[data-go]");if(go)return pick(go.dataset.go);
+  const nw=t.closest("[data-new]");if(nw)return add({k:nw.dataset.new,of:sel});
+  const n=t.closest(".n");if(n)return pick(n.dataset.id);
+  const a=t.closest("[data-a]")?.dataset.a;
+  if(a==="add")add();
+  else if(a==="zi")zoom(1.25,...mid());
+  else if(a==="zo")zoom(.8,...mid());
+  else if(a==="fit")fit();
+  else if(a==="undo")hist(H,R);
+  else if(a==="redo")hist(R,H);
+  else if(a==="focus"){FS=$("#fm").value==="hg"?new Set([...branch(sel,"up"),...branch(sel,"down")]):branch(sel,$("#fm").value);render();fit()}
+  else if(a==="unfocus"){FS=null;render();fit()}
+  else if(a==="rmphoto"){P()[sel].photo="";render();panel()}
+  else if(a==="ged"){try{$("#ta").value=toGed(JSON.parse($("#ta").value))}catch(_){$("#msg").textContent="Export JSON first, then convert."}}
+  else if(a==="bgr"){S.bg.c=S.bg.p="";render()}
+  else if(a==="close"){sel=null;render();panel()}
+  else if(a==="del"&&confirm("Delete "+nm(sel)+"?")){delete P()[sel];sel=null;clean();render();panel()}
+  else if(a==="expall")openIO("Export: whole tree",dump());
+  else if(a==="expbr")openIO("Export: branch of "+nm(sel),dump(branch(sel,$("#scope").value)));
+  else if(a==="imp")openIO("Import: paste JSON or choose a file","");
+  else if(a==="merge")merge();
+  else if(a==="ioclose")$("#io").close();
+  else if(a==="copy"){$("#ta").select();try{navigator.clipboard.writeText($("#ta").value)}catch(_){document.execCommand("copy")}$("#msg").textContent="Copied."}
+});
+document.addEventListener("input",e=>{const f=e.target.dataset.f;if(f&&sel){P()[sel][f]=e.target.value;render()}});
+document.addEventListener("change",e=>{const d=e.target.dataset;if(d.pt){P()[sel].pt[d.pt]=e.target.value;render();return}if(d.c){P()[sel][d.c]=e.target.checked;render();return}if(e.target.id==="rw"){$("#rr").textContent=e.target.value?how(sel,e.target.value):"";return}if("photo" in d){pic(e.target.files[0]);return}const m=e.target.dataset.ms;if(m){P()[sel].ms[m]=P()[m].ms[sel]=e.target.value;render();return}const k=e.target.dataset.link;if(k&&e.target.value){link(k,sel,e.target.value);render();panel()}});
+$("#fi").addEventListener("change",e=>{const r=new FileReader();r.onload=()=>{$("#ta").value=r.result};if(e.target.files[0])r.readAsText(e.target.files[0])});
+const stg=$("#stage"),cvs=$("#cv"),q=$("#q"),sr=$("#sr");
+S.bg??={pat:"dots",c:""};$("#pat").value=S.bg.pat;
+function view(){cvs.style.transform=`translate(${V.x}px,${V.y}px) scale(${V.k})`;bg()}
+function bg(){const b=S.bg||{},c=b.p||"color-mix(in srgb,var(--ink) 22%,transparent)",s=24*V.k;
+  stg.style.backgroundColor=b.c||"";
+  stg.style.backgroundImage={dots:`radial-gradient(circle,${c} ${1.6*V.k}px,transparent ${1.7*V.k}px)`,grid:`linear-gradient(${c} 1px,transparent 1px),linear-gradient(90deg,${c} 1px,transparent 1px)`,lines:`linear-gradient(${c} 1px,transparent 1px)`,none:"none"}[b.pat||"dots"];
+  stg.style.backgroundSize=`${s}px ${s}px`;stg.style.backgroundPosition=`${V.x}px ${V.y}px`}
+function zoom(f,cx,cy){const k=Math.min(3,Math.max(.2,V.k*f));f=k/V.k;V.x=cx-(cx-V.x)*f;V.y=cy-(cy-V.y)*f;V.k=k;view()}
+const mid=()=>[stg.clientWidth/2,stg.clientHeight/2];
+function fit(){if(!Object.keys(P()).length)return;const {w,h}=layout(),k=Math.min(1.2,stg.clientWidth/w,stg.clientHeight/h);V={k,x:(stg.clientWidth-w*k)/2,y:20};view()}
+function center(i){const c=layout().pos[i];V.k=Math.max(V.k,.9);V.x=stg.clientWidth/2-(c.x+78)*V.k;V.y=stg.clientHeight/2-(c.y+41)*V.k;view()}
+const ptr=new Map();let moved=0;
+stg.addEventListener("wheel",e=>{e.preventDefault();const r=stg.getBoundingClientRect();zoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top)},{passive:false});
+addEventListener("pointerdown",e=>{moved=0;if(stg.contains(e.target)&&!e.target.closest("button"))ptr.set(e.pointerId,[e.clientX,e.clientY])},true);
+addEventListener("pointermove",e=>{const o=ptr.get(e.pointerId);if(!o)return;
+  const dist=()=>{const v=[...ptr.values()];return v.length>1?Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]):0},d=dist();
+  ptr.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(e.clientX-o[0])+Math.abs(e.clientY-o[1]);
+  if(ptr.size>1){if(d){const r=stg.getBoundingClientRect(),v=[...ptr.values()];zoom(dist()/d,(v[0][0]+v[1][0])/2-r.left,(v[0][1]+v[1][1])/2-r.top)}}
+  else if(moved>4){V.x+=e.clientX-o[0];V.y+=e.clientY-o[1];view()}});
+addEventListener("pointerup",e=>ptr.delete(e.pointerId));addEventListener("pointercancel",e=>ptr.delete(e.pointerId));
+addEventListener("click",e=>{if(moved>4){e.stopPropagation();e.preventDefault()}},true);
+q.addEventListener("input",()=>{const t=q.value.trim().toLowerCase();
+  sr.innerHTML=t?Object.keys(P()).filter(i=>(lab(i)+" "+P()[i].other+" "+P()[i].bio).toLowerCase().includes(t)).slice(0,12).map(i=>`<div data-hit="${i}">${esc(lab(i))}</div>`).join("")||"<div>No match</div>":""});
+$("#pat").onchange=e=>{S.bg.pat=e.target.value;render()};$("#bgc").oninput=e=>{S.bg.c=e.target.value;render()};$("#pc").oninput=e=>{S.bg.p=e.target.value;render()};
+const VP=()=>{const p=P();if(!FS)return p;const o={};FS.forEach(i=>{if(p[i])o[i]={...p[i],parents:p[i].parents.filter(q=>FS.has(q)),spouses:p[i].spouses.filter(q=>FS.has(q))}});return o};
+function age(x){const by=+yr(x.born);if(!by)return"";const ey=x.died?+yr(x.died):x.dec?0:new Date().getFullYear();return ey?ey-by:""}
+function snap(){const j=JSON.stringify(S.people);if(j===last)return;if(Date.now()-lt>800||!H.length){H.push(last);if(H.length>40)H.shift()}lt=Date.now();last=j;R=[]}
+function hist(from,to){if(!from.length)return;to.push(last);S.people=JSON.parse(from.pop());clean();last=JSON.stringify(S.people);render();panel()}
+addEventListener("keydown",e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();if(k==="z"){e.preventDefault();e.shiftKey?hist(R,H):hist(H,R)}else if(k==="y"){e.preventDefault();hist(R,H)}});
+function pic(f){if(!f)return;const im=new Image(),r=new FileReader();r.onload=()=>{im.src=r.result};im.onload=()=>{const c=document.createElement("canvas"),s=Math.min(im.width,im.height);c.width=c.height=128;c.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);P()[sel].photo=c.toDataURL("image/jpeg",.75);render();panel()};r.readAsDataURL(f)}
+function how(a,b){const p=P(),up=s=>{const d={[s]:0},q=[s];while(q.length){const c=q.shift();p[c].parents.forEach(x=>{if(d[x]==null){d[x]=d[c]+1;q.push(x)}})}return d},A=up(a),B=up(b);
+  if(p[a].spouses.includes(b)){const t=p[a].ms[b];return `${nm(b)} is ${nm(a)}’s ${t==="married"?"spouse":t} (${t}).`}
+  let z=null;for(const x in A)if(x in B&&(z==null||A[x]+B[x]<A[z]+B[z]))z=x;
+  if(z==null)return "No blood relation found in this tree.";
+  const m=A[z],n=B[z],gr=k=>k>0?"great-".repeat(k):"";let r;
+  if(!m)r=gr(n-2)+(n===1?"child":"grandchild");else if(!n)r=gr(m-2)+(m===1?"parent":"grandparent");
+  else if(m===1&&n===1)r="sibling";else if(m===1)r=n===2?"niece/nephew":gr(n-3)+"grandniece/nephew";else if(n===1)r=gr(m-2)+"aunt/uncle";
+  else{const c=Math.min(m,n)-1,d=Math.abs(m-n);r=c+(c===1?"st":c===2?"nd":c===3?"rd":"th")+" cousin"+(d?` ${d}× removed`:"")}
+  return `${nm(b)} is ${nm(a)}’s ${r}.`}
+function toGed(d){const ps=d.people,X=i=>"@"+i.toUpperCase()+"@",MO=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"],o=["0 HEAD","1 GEDC","2 VERS 7.0"],F={};
+  const dt=(s,l,t)=>{const a=dt0(s,l);if(t&&a[0]&&/ DATE /.test(a[0]))a.splice(1,0,`${l+1} TIME ${t}`);return a},dt0=(s,l)=>{s=String(s||"").trim();if(!s)return[];const m=s.match(/^(\d{4})-(\d\d)-(\d\d)$/),y=s.match(/\d{4}/);
+    return m?[`${l} DATE ${+m[3]} ${MO[m[2]-1]} ${m[1]}`]:/^\d{4}$/.test(s)?[`${l} DATE ${s}`]:y?[`${l} DATE ABT ${y[0]}`,`${l+1} PHRASE ${s}`]:[`${l} NOTE ${s}`]};
+  const note=t=>String(t).split("\n").map((s,k)=>k?`2 CONT ${s}`:`1 NOTE ${s}`);
+  ps.forEach(p=>{const a=p.parents.slice(0,2).sort();if(a.length)(F[a.join("|")]??={a,c:[]}).c.push(p.id);p.spouses.forEach(s=>{if(s>p.id)(F[p.id+"|"+s]??={a:[p.id,s],c:[]}).st=p.ms[s]||"married"})});
+  const fk=Object.keys(F);fk.forEach((k,n)=>F[k].x="@F"+(n+1)+"@");
+  ps.forEach(p=>{const gv=[p.first,p.middle].filter(Boolean).join(" "),g=String(p.gender||"");
+    o.push(`0 ${X(p.id)} INDI`,`1 NAME ${gv} /${p.last||""}/`);if(gv)o.push(`2 GIVN ${gv}`);if(p.last)o.push(`2 SURN ${p.last}`);if(p.other)o.push(`2 NICK ${p.other}`);
+    o.push(`1 SEX ${/^[fw]/i.test(g)?"F":/^m/i.test(g)?"M":g?"X":"U"}`);if(p.photo)o.push(`1 OBJE @M${p.id.toUpperCase()}@`);
+    if(p.born||p.bplace)o.push("1 BIRT",...dt(p.born,2,p.btime),...(p.bplace?[`2 PLAC ${p.bplace}`]:[]));
+    if(p.died||p.dplace)o.push("1 DEAT",...dt(p.died,2,p.dtime),...(p.dplace?[`2 PLAC ${p.dplace}`]:[]));else if(p.dec)o.push("1 DEAT Y");
+    String(p.dates||"").split("\n").filter(s=>s.trim()).forEach(s=>{const k=s.indexOf(":");o.push("1 EVEN",`2 TYPE ${k>0?s.slice(0,k).trim():"Event"}`,...dt(k>0?s.slice(k+1):s,2))});
+    if(p.bio)o.push(...note(p.bio));if(p.src)o.push(...note("Sources: "+p.src));
+    fk.forEach(k=>{const f=F[k];if(f.a.includes(p.id))o.push(`1 FAMS ${f.x}`);if(f.c.includes(p.id)){const t=(p.pt||{})[f.a[0]]||"biological";o.push(`1 FAMC ${f.x}`);if(t!=="biological")o.push(`2 PEDI ${t==="adopted"?"ADOPTED":t==="foster"?"FOSTER":"OTHER"}`,...(t==="step"?["3 PHRASE step"]:[]))}})});
+  fk.forEach(k=>{const f=F[k];o.push(`0 ${f.x} FAM`,`1 HUSB ${X(f.a[0])}`);if(f.a[1])o.push(`1 WIFE ${X(f.a[1])}`);
+    if(f.st)o.push(...({married:["1 MARR"],divorced:["1 DIV"],engaged:["1 ENGA"]}[f.st]||["1 EVEN",`2 TYPE ${f.st}`]));f.c.forEach(c=>o.push(`1 CHIL ${X(c)}`))});
+  ps.filter(p=>p.photo).forEach(p=>o.push(`0 @M${p.id.toUpperCase()}@ OBJE`,`1 FILE ${p.photo}`,"2 FORM image/jpeg"));
+  o.push("0 TRLR");return o.join("\n")}
+function fromGed(t){const M={},idOf=x=>M[x]??=(/^@[A-Z0-9]{7}@$/.test(x)?x.slice(1,-1).toLowerCase():uid()),people={},fams=[],PD={},OB={};let r=null,e="",fc="";
+  for(const ln of t.split(/\r?\n/)){const m=ln.match(/^\s*(\d+) +(?:(@\S+@) +)?(\w+)(?: (.*))?$/);if(!m)continue;const lv=+m[1],xr=m[2],tag=m[3],v=m[4]||"";
+    if(lv===0){r=null;e="";if(tag==="INDI"){const id=idOf(xr);r=people[id]=blank(id);r.k="I"}else if(tag==="FAM"){r={k:"F",xr,c:[],st:""};fams.push(r)}else if(tag==="OBJE")r={k:"O",xr};continue}
+    if(!r)continue;if(r.k==="O"){if(lv===1&&tag==="FILE")OB[r.xr]=v;continue}
+    if(lv===1){e=tag;if(tag==="FAMC")fc=v;
+      if(r.k==="I"){if(tag==="NAME"&&!r.first&&!r.last){const n=v.match(/^([^/]*)\/?([^/]*)/),w=n[1].trim().split(/\s+/).filter(Boolean);r.first=w[0]||"";r.middle=w.slice(1).join(" ");r.last=n[2].trim()}
+        else if(tag==="SEX")r.gender={M:"male",F:"female",X:"other"}[v]||"";else if(tag==="NOTE")r.bio=(r.bio?r.bio+"\n":"")+v;else if(tag==="DEAT"&&v==="Y")r.dec=true;else if(tag==="OBJE")r.ob=v}
+      else if(tag==="HUSB"||tag==="WIFE")r[tag]=idOf(v);else if(tag==="CHIL")r.c.push(idOf(v));
+      else if({MARR:"married",DIV:"divorced",ENGA:"engaged"}[tag])r.st={MARR:"married",DIV:"divorced",ENGA:"engaged"}[tag]}
+    else if(lv===2){
+      if(r.k==="I"){if(e==="BIRT"&&tag==="DATE")r.born=v;else if(e==="BIRT"&&tag==="PLAC")r.bplace=v;else if(e==="DEAT"&&tag==="DATE")r.died=v;else if(e==="DEAT"&&tag==="PLAC")r.dplace=v;
+        else if(e==="NAME"&&tag==="NICK")r.other=v;else if(e==="NOTE"&&tag==="CONT")r.bio+="\n"+v;else if(e==="FAMC"&&tag==="PEDI")PD[r.id+fc]={ADOPTED:"adopted",FOSTER:"foster",OTHER:"step"}[v]}
+      else if(e==="EVEN"&&tag==="TYPE"&&MS.includes(v.toLowerCase()))r.st=v.toLowerCase()}
+    else if(lv===3&&tag==="TIME"&&r.k==="I"){if(e==="BIRT")r.btime=v;else if(e==="DEAT")r.dtime=v}}
+  fams.forEach(f=>{const ps=[f.HUSB,f.WIFE].filter(x=>people[x]);
+    if(ps.length===2){const[a,b]=ps;people[a].spouses.push(b);people[b].spouses.push(a);people[a].ms[b]=people[b].ms[a]=f.st||"partner"}
+    f.c.forEach(c=>{const p=people[c];if(p)ps.forEach(q=>{p.parents.push(q);const t=PD[c+f.xr];if(t)p.pt[q]=t})})});
+  return Object.values(people).map(p=>{delete p.k;const o=OB[p.ob];delete p.ob;if(/^data:image\//.test(o||""))p.photo=o;return p})}
+clean();last=JSON.stringify(S.people);render();fit();
+</script>
+</body>
+</html>
