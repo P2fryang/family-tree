@@ -724,7 +724,7 @@
     <p id="msg"></p>
   </dialog>
   <script>
-    const K = "famtree.v1", CW = 200, RH = 140, CH = 82;
+    const K = "famtree.v1", CW = 200, RH = 160, CH = 82;
     let S = { people: {} }, sel = null, V = { x: 20, y: 20, k: 1 }, FS = null, FM = "", VM = "", DIM = { w: 1, h: 1 }, POS = {}, sg = null, LK = null, H = [], R = [], last = "", lt = 0;
     const PAL = { "#f9cfd2": "#c76b78", "#fbe0c4": "#c9824a", "#fbe9a8": "#b8962e", "#d6e8d0": "#6f9a62", "#c9ece3": "#4f9d8c", "#cfe3f3": "#5b8fbf", "#ddd3f0": "#8a72b8" },
       bdr = c => PAL[c] || "#" + [1, 3, 5].map(i => Math.round(parseInt(c.slice(i, i + 2), 16) * .55).toString(16).padStart(2, "0")).join(""); const PT = ["biological", "adopted", "step", "foster"], GN = ["female", "male", "nonbinary", "genderqueer", "genderfluid", "agender", "trans woman", "trans man", "intersex", "two-spirit", "other", "unknown"]; const MS = ["married", "partner", "engaged", "separated", "divorced", "widowed"];
@@ -768,7 +768,7 @@
     }
 
     function edges(p, pos) {
-      const ids = Object.keys(p), o = [], lanes = {}, UN = {}, cen = i => pos[i].x + 78, bot = i => pos[i].y + CH,
+      const ids = Object.keys(p), o = [], lanes = {}, LP = [], UN = {}, cen = i => pos[i].x + 78, bot = i => pos[i].y + CH,
         mk = { married: "♥", partner: "♡", engaged: "◇", separated: "sep.", divorced: "div.", widowed: "wid." };
       const adj = (a, b) => pos[a].y === pos[b].y && Math.abs(pos[a].x - pos[b].x) === CW;
       // 1. one union point per couple: a dot sits between the two partners, and every child of that couple drops from it
@@ -780,7 +780,15 @@
           UN[key] = { x, y }
         }
         else {
-          const y = Math.max(bot(i), bot(s)) + 14, x = (cen(i) + cen(s)) / 2;
+          // partners not side by side: a U under the row; each loop from the same card gets its own depth so none overlap
+          const b0 = Math.max(bot(i), bot(s)), lo = Math.min(cen(i), cen(s)), hi = Math.max(cen(i), cen(s)); let k = 0;
+          while (LP.some(z => z.k === k && z.b0 === b0 && z.lo < hi && z.hi > lo)) k++; LP.push({ k, b0, lo, hi });
+          const y = b0 + 24 + Math.min(k, 2) * 12;
+          // put the dot where no other vertical line in this row is (card centres, gap centres, other loop dots)
+          const oc = ids.filter(q => pos[q].y === pos[i].y).flatMap(q => [cen(q), cen(q) + CW / 2, cen(q) - CW / 2]).concat(LP.filter(z => z.b0 === b0 && z.x != null).map(z => z.x));
+          let x = (lo + hi) / 2, bs = -1e9;
+          for (let c = lo + 24; c <= hi - 24; c += 8) { const sc = Math.min(...oc.map(v => Math.abs(v - c))) - Math.abs(c - (lo + hi) / 2) * .1; if (sc > bs) { bs = sc; x = c } }
+          LP[LP.length - 1].x = x;
           o.push(`<path class="sp ${t}" d="M${cen(i)} ${bot(i)}V${y}H${cen(s)}V${bot(s)}"/><text class="st" x="${x}" y="${y - 5}" text-anchor="middle">${mk[t] || t}</text>`);
           UN[key] = { x, y }
         }
@@ -828,7 +836,9 @@
           if (seen.has(i)) return; seen.add(i); const m = [i];
           for (let k = 0; k < m.length; k++)p[m[k]].spouses.forEach(s => { if (g[s] === g[i] && !seen.has(s)) { seen.add(s); m.push(s) } });
           const h = m.length > 2 && m.find(a => m.every(b => b === a || p[a].spouses.includes(b)));
-          if (h) { const o = m.filter(a => a !== h), k = o.length >> 1; m.splice(0, m.length, ...o.slice(0, k), h, ...o.slice(k)) }
+          if (h) { // past partners on the left (oldest first), current partner(s) on the right, next to the hub
+            const old = a => /^(divorced|separated|widowed)$/.test(p[h].ms[a]), o = p[h].spouses.filter(a => m.includes(a)), L = o.filter(old), Rt = o.filter(a => !old(a));
+            if (!Rt.length && L.length > 1) Rt.push(L.pop()); m.splice(0, m.length, ...L, h, ...Rt) }
           out.push({ m, h: !!h, f: m.map(a => [...p[a].parents].sort().join()).find(Boolean) || "" })
         });
         return out
@@ -885,7 +895,7 @@
 
       const life = x => { const a = age(x); return (x.born && x.died ? `${sh(x.born)}–${sh(x.died)}` : x.born ? "b. " + sh(x.born) : x.died ? "d. " + sh(x.died) : x.dec ? "deceased" : "") + (a !== "" ? ` · ${a}` : "") };
       cv.style.width = w + "px"; cv.style.height = h + "px";
-      cv.innerHTML = `<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop)}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5}.sp.widowed{stroke:var(--muted)}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.ud{fill:var(--card);stroke:var(--ink);stroke-width:2}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>` +
+      cv.innerHTML = `<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop);stroke-width:3.5}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5;stroke-width:1.5}.sp.widowed{stroke:var(--muted);stroke-width:1.5}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.ud{fill:var(--card);stroke:var(--ink);stroke-width:2}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>` +
         ids.map(i => {
           const x = p[i], c = pos[i], r = ([...i].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 5 - 2) * .6;
           return `<div class="n${i === sel ? " sel" : ""}${x.photo ? " pic" : ""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color ? `background:${esc(x.color)};border-color:${bdr(x.color)};box-shadow:3px 3px 0 ${bdr(x.color)};color:#2b2a33` : ""}">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : ""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x))}</small><span class="lk" data-lk="${i}" title="Drag onto another card to link">⊕</span></div>`
