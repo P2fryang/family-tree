@@ -23,6 +23,18 @@ button.pop{background:var(--pop);color:#2b2a33}
 #stage{flex:1;overflow:hidden;position:relative;touch-action:none;cursor:grab;background-color:var(--paper)}
 #cv{position:absolute;left:0;top:0;transform-origin:0 0}
 .zm{position:absolute;left:12px;bottom:12px;display:flex;gap:6px}
+.zm select{background:var(--paper);border:2px solid var(--ink);border-radius:8px;height:30px;padding:0 4px}
+header{position:relative}#set summary{list-style:none;cursor:pointer;background:var(--butter);color:var(--ink);border:2px solid var(--ink);border-radius:10px 14px 11px 15px/14px 10px 15px 11px;padding:3px 12px;box-shadow:2px 2px 0 var(--ink)}#set summary::-webkit-details-marker{display:none}
+.menu{position:absolute;right:8px;top:100%;z-index:6;max-width:calc(100vw - 16px);box-sizing:border-box;display:flex;flex-direction:column;gap:8px;min-width:200px;padding:10px;background:var(--card);border:2px solid var(--ink);border-radius:12px;box-shadow:3px 3px 0 var(--ink)}.menu label{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#pn .dp{margin:0 0 4px}#pn .dp input:first-child{flex:1.5}
+.lk{position:absolute;right:5px;bottom:2px;font-size:15px;line-height:1;cursor:crosshair;opacity:.55}.lk:hover{opacity:1}
+#rb{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+#lm{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--card);border:2px solid var(--ink);border-radius:12px;box-shadow:3px 3px 0 var(--ink)}#lm[hidden]{display:none}
+.tb{position:absolute;cursor:pointer;white-space:nowrap}.tb i{display:block;box-sizing:border-box;height:12px;border:2px solid var(--ink);border-radius:6px;background:var(--card)}.tb.sel{outline:3px dashed var(--pop);outline-offset:3px}
+.tk{position:absolute;top:0;height:100%;border-left:1px dashed color-mix(in srgb,var(--ink) 22%,transparent);font-size:13px;color:var(--muted);padding:2px 0 0 3px}.und{position:absolute;color:var(--muted)}
+.ax{position:absolute;height:0;border-top:3px solid var(--ink)}.at{position:absolute;height:10px;border-left:2px solid var(--ink);margin-top:-5px}.ak{position:absolute;font-size:13px;color:var(--muted)}
+.es{position:absolute;width:0;border-left:2px solid var(--ink)}.ed{position:absolute;z-index:2;width:12px;height:12px;box-sizing:border-box;border:2px solid var(--ink);border-radius:50%;background:var(--card)}
+.ev{position:absolute;z-index:1;box-sizing:border-box;height:28px;line-height:24px;padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--ink);border:2px solid var(--ink);border-radius:10px 14px 11px 15px/14px 10px 15px 11px;box-shadow:2px 2px 0 var(--ink)}
+.k-birth{background:var(--sage)}.k-death{background:var(--blue)}.k-marriage{background:var(--pink)}.k-other{background:var(--butter)}.ev.sel{outline:3px dashed var(--pop);outline-offset:2px}
 header select,header input[type=color]{background:var(--paper);border:2px solid var(--ink);border-radius:8px;height:30px;padding:0 4px}
 #q{width:140px;height:30px;box-sizing:border-box;padding:0 8px;background:var(--paper);border:2px solid var(--ink);border-radius:10px 14px 11px 15px/14px 10px 15px 11px}
 #sr{position:absolute;top:110%;left:0;z-index:5;min-width:300px;background:var(--card);border:2px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 var(--ink)}
@@ -60,19 +72,20 @@ dialog textarea{height:240px;font:14px/1.3 ui-monospace,monospace}
 <header>
 <h1>Family <u>Tree</u></h1>
 <button class="pop" data-a="add">＋ Person</button>
-<button data-a="expall">Export all</button>
-<button data-a="imp">Import</button>
 <div style="position:relative"><input id="q" placeholder="Search…" autocomplete="off"><div id="sr"></div></div>
-<select id="pat" title="Paper"><option value="dots">dots</option><option value="grid">grid</option><option value="lines">lines</option><option value="none">plain</option></select><input type="color" id="bgc" title="Paper colour"><input type="color" id="pc" title="Dot/line colour"><button data-a="undo" title="Undo">↶</button><button data-a="redo" title="Redo">↷</button><button data-a="bgr" title="Reset paper colour">↺</button>
+<button data-a="undo" title="Undo">↶</button><button data-a="redo" title="Redo">↷</button><select id="vw" title="View"><option value="">Tree</option><option value="t">Life spans</option><option value="e">Events</option></select>
+<details id="set"><summary title="Settings">⚙</summary><div class="menu"><button data-a="expall">Export all</button><button data-a="imp">Import / sync</button><label>Paper <select id="pat"><option value="dots">dots</option><option value="grid">grid</option><option value="lines">lines</option><option value="none">plain</option></select></label><label>Colours <input type="color" id="bgc" title="Paper colour"><input type="color" id="pc" title="Dot/line colour"><button data-a="bgr" title="Reset colours">↺</button></label></div></details>
 </header>
-<div id="stage"><div id="cv"></div><div class="hint" id="em" hidden>A blank page ✎<br>add your first person</div><div class="zm"><button data-a="zi">＋</button><button data-a="zo">－</button><button data-a="fit">Fit</button><button id="uf" data-a="unfocus" hidden>Show all</button></div></div>
-<aside id="pn" hidden></aside>
+<div id="stage"><div id="cv"></div><div class="hint" id="em" hidden>A blank page ✎<br>add your first person</div><svg id="rb" style="display:none"><line stroke="var(--pop)" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"/></svg><div class="zm"><button data-a="zi">＋</button><button data-a="zo">－</button><button data-a="fit">Fit</button><select id="fm" title="Focus on the selected person"><option value="">Focus: off</option><option value="up">ancestors</option><option value="down">descendants</option><option value="hg">both</option><option value="all">family</option></select></div></div>
+<aside id="pn" hidden></aside><div id="lm" hidden></div>
 <dialog id="io"><h4 id="iot"></h4><textarea id="ta" spellcheck="false"></textarea>
 <div class="bar"><button data-a="copy">Copy</button><button data-a="ged">JSON → GEDCOM 7</button><button class="pop" data-a="merge">Import this</button><input type="file" id="fi" accept=".json,application/json"><button data-a="ioclose">Close</button></div>
 <p id="msg"></p></dialog>
 <script>
 const K="famtree.v1",CW=200,RH=140,CH=82;
-let S={people:{}},sel=null,V={x:20,y:20,k:1},FS=null,H=[],R=[],last="",lt=0;const PT=["biological","adopted","step","foster"],GN=["female","male","nonbinary","genderqueer","genderfluid","agender","trans woman","trans man","intersex","two-spirit","other","unknown"];const MS=["married","partner","engaged","separated","divorced","widowed"];
+let S={people:{}},sel=null,V={x:20,y:20,k:1},FS=null,FM="",VM="",DIM={w:1,h:1},POS={},sg=null,LK=null,H=[],R=[],last="",lt=0;
+const PAL={"#f9cfd2":"#c76b78","#fbe0c4":"#c9824a","#fbe9a8":"#b8962e","#d6e8d0":"#6f9a62","#c9ece3":"#4f9d8c","#cfe3f3":"#5b8fbf","#ddd3f0":"#8a72b8"},
+  bdr=c=>PAL[c]||"#"+[1,3,5].map(i=>Math.round(parseInt(c.slice(i,i+2),16)*.55).toString(16).padStart(2,"0")).join("");const PT=["biological","adopted","step","foster"],GN=["female","male","nonbinary","genderqueer","genderfluid","agender","trans woman","trans man","intersex","two-spirit","other","unknown"];const MS=["married","partner","engaged","separated","divorced","widowed"];
 try{S=JSON.parse(localStorage.getItem(K))||S}catch(e){}
 const P=()=>S.people,$=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -80,13 +93,13 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const nm=i=>{const x=P()[i];return x?[x.first,x.middle,x.last].filter(Boolean).join(" ")||"Unnamed":"?"};
 const yr=x=>(String(x.born||"").match(/\d{4}/)||[""])[0];
 const lab=i=>{const x=P()[i];return nm(i)+(yr(x)?` (b. ${yr(x)})`:"")+(x.parents.length?` · child of ${x.parents.map(q=>nm(q)).join(" & ")}`:"")};
-const blank=id=>({id,first:"",middle:"",last:"",other:"",gender:"",color:"",born:"",died:"",dates:"",bio:"",parents:[],spouses:[],ms:{},pt:{},photo:"",bplace:"",dplace:"",src:"",dec:false,btime:"",dtime:""});
+const blank=id=>({id,first:"",middle:"",last:"",other:"",gender:"",color:"",born:"",died:"",dates:"",bio:"",parents:[],spouses:[],ms:{},pt:{},photo:"",bplace:"",dplace:"",src:"",dec:false,btime:"",dtime:"",u:0});
 const kids=id=>Object.keys(P()).filter(i=>P()[i].parents.includes(id));
 const sibs=id=>Object.keys(P()).filter(i=>i!==id&&P()[i].parents.some(q=>P()[id].parents.includes(q)));
 
 function clean(){ // keep relations valid and spouses symmetric
   const p=P(),ok=i=>p[i];
-  for(const i in p){const x=p[i];if(x.name!==undefined){const w=String(x.name).trim().split(/\s+/).filter(Boolean);if(!x.first&&!x.last){x.first=w[0]||"";x.last=w.length>1?w[w.length-1]:"";x.middle=w.slice(1,-1).join(" ")}delete x.name}x.first??="";x.middle??="";x.last??="";x.color??="";x.ms={...x.ms};x.pt={...x.pt};x.parents=[...new Set(x.parents||[])].filter(a=>ok(a)&&a!==i);x.spouses=[...new Set(x.spouses||[])].filter(a=>ok(a)&&a!==i)}
+  for(const i in p){const x=p[i];if(x.name!==undefined){const w=String(x.name).trim().split(/\s+/).filter(Boolean);if(!x.first&&!x.last){x.first=w[0]||"";x.last=w.length>1?w[w.length-1]:"";x.middle=w.slice(1,-1).join(" ")}delete x.name}x.first??="";x.middle??="";x.last??="";x.color??="";x.ms={...x.ms};x.pt={...x.pt};x.born=nd(x.born);x.died=nd(x.died);x.parents=[...new Set(x.parents||[])].filter(a=>ok(a)&&a!==i);x.spouses=[...new Set(x.spouses||[])].filter(a=>ok(a)&&a!==i)}
   for(const i in p)p[i].spouses.forEach(s=>{if(!p[s].spouses.includes(i))p[s].spouses.push(i);p[i].ms[s]=p[s].ms[i]=p[i].ms[s]||p[s].ms[i]||"married"});
 }
 function link(k,a,b){const p=P();
@@ -118,35 +131,39 @@ function edges(p,pos){
     f.ch.forEach(c=>o.push(`<path class="pt-${p[c].pt[f.ps[0]]||"biological"}" d="M${pos[c].x+78} ${by}V${pos[c].y}"/>`))});
   return o.join("")}
 function layout(){
-  const p=VP(),ids=Object.keys(p),g={};ids.forEach(i=>g[i]=0);
+  const p=VP(),ids=Object.keys(p),g={},bk=i=>{const m=String(p[i].born||"").match(/(\d{4})(?:-(\d\d))?(?:-(\d\d))?/);return m?m[1]*372+(m[2]||0)*31+(+m[3]||0):1e12};ids.forEach(i=>g[i]=0);
   for(let n=0;n<ids.length+2;n++){let ch=false;
     ids.forEach(i=>{let v=g[i];p[i].parents.forEach(q=>v=Math.max(v,g[q]+1));p[i].spouses.forEach(q=>v=Math.max(v,g[q]));if(v!==g[i]){g[i]=v;ch=true}});
     if(!ch)break}
   const rows=[];ids.forEach(i=>(rows[g[i]]??=[]).push(i));
-  const max=Math.max(0,...rows.filter(Boolean).map(r=>r.length)),pos={};
+  const pos={};
   rows.forEach((r,gi)=>{
-    const off=(max-r.length)*CW/2+24;
     const key=i=>{const ps=p[i].parents.filter(q=>pos[q]);return ps.length?ps.reduce((a,q)=>a+pos[q].x,0)/ps.length:1e9};
-    r.sort((a,b)=>key(a)-key(b)||nm(a).localeCompare(nm(b)));
+    r.sort((a,b)=>key(a)-key(b)||bk(a)-bk(b)||nm(a).localeCompare(nm(b)));
     const out=[],seen=new Set();
     r.forEach(i=>{if(seen.has(i))return;seen.add(i);out.push(i);p[i].spouses.forEach(s=>{if(g[s]===gi&&!seen.has(s)){seen.add(s);out.push(s)}})});
-    out.forEach((i,k)=>pos[i]={x:off+k*CW,y:gi*RH+30});
+    // units = a person plus attached spouses; sibling units are centred under their parents, never pushed left of the previous card
+    const U=[];out.forEach(i=>{const u=U[U.length-1];if(u&&u.m.some(m=>p[m].spouses.includes(i)))u.m.push(i);else U.push({m:[i]})});
+    U.forEach(u=>{const ks=u.m.map(key).filter(k=>k<1e9);u.d=ks.length?ks.reduce((a,b)=>a+b)/ks.length:null});
+    const G=[];U.forEach(u=>{const q=G[G.length-1];if(q&&u.d!=null&&q.d===u.d)q.u.push(u);else G.push({d:u.d,u:[u]})});
+    let cur=24;G.forEach(q=>{const n=q.u.reduce((a,u)=>a+u.m.length,0);let x=q.d==null?cur:Math.max(cur,q.d-(n-1)*CW/2);q.u.forEach(u=>u.m.forEach(i=>{pos[i]={x,y:gi*RH+30};x+=CW}));cur=x});
   });
-  return {pos,w:max*CW+48,h:rows.length*RH+40};
+  return {pos,w:Math.max(0,...Object.values(pos).map(q=>q.x))+156+24,h:rows.length*RH+40};
 }
 
 function render(){
-  bg();snap();$("#uf").hidden=!FS;$("#em").hidden=!!Object.keys(P()).length;
+  bg();snap();$("#em").hidden=!!Object.keys(P()).length;
   try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
   const p=VP(),ids=Object.keys(p),cv=$("#cv");
   if(!ids.length){cv.innerHTML="";return}
-  const {pos,w,h}=layout();const ln=edges(p,pos);
+  if(VM){const T=(VM==="e"?ev:tl)(p,ids);POS=T.pos;DIM={w:T.w,h:T.h};cv.style.width=T.w+"px";cv.style.height=T.h+"px";cv.innerHTML=T.html;return}
+  const {pos,w,h}=layout();POS=pos;DIM={w,h};const ln=edges(p,pos);
   
   const sh=s=>(String(s).match(/\d{4}/)||[s])[0];const life=x=>{const a=age(x);return (x.born&&x.died?`${sh(x.born)}–${sh(x.died)}`:x.born?"b. "+sh(x.born):x.died?"d. "+sh(x.died):x.dec?"deceased":"")+(a!==""?` · ${a}`:"")};
   cv.style.width=w+"px";cv.style.height=h+"px";
   cv.innerHTML=`<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop)}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5}.sp.widowed{stroke:var(--muted)}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>`+
     ids.map(i=>{const x=p[i],c=pos[i],r=([...i].reduce((a,ch)=>a+ch.charCodeAt(0),0)%5-2)*.6;
-      return `<div class="n${i===sel?" sel":""}${x.photo?" pic":""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color?`background:${esc(x.color)};color:#2b2a33`:""}">${x.photo?`<img src="${esc(x.photo)}" alt="">`:""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x))}</small></div>`}).join("");
+      return `<div class="n${i===sel?" sel":""}${x.photo?" pic":""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color?`background:${esc(x.color)};border-color:${bdr(x.color)};box-shadow:3px 3px 0 ${bdr(x.color)};color:#2b2a33`:""}">${x.photo?`<img src="${esc(x.photo)}" alt="">`:""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x))}</small><span class="lk" data-lk="${i}" title="Drag onto another card to link">⊕</span></div>`}).join("");
 }
 
 function panel(){
@@ -159,23 +176,23 @@ function panel(){
   pn.innerHTML=`<div class="ph"><h4>Details</h4><button data-a="close">✕</button></div><div class="pb">
   <div class="row">${f("first","First")}${f("middle","Middle")}${f("last","Last")}</div>${f("other","Other names / nicknames")}
   <label>Gender<input data-f="gender" list="gl" value="${esc(x.gender)}" placeholder="choose or type your own"><datalist id="gl">${GN.map(g=>`<option>${g}</option>`).join("")}</datalist></label>
-  <div class="row">${f("born","Born")}${f("died","Died")}</div>
+  ${dpHTML(x,"born","Born")}${dpHTML(x,"died","Died")}
   <label><input type="checkbox" data-c="dec"${x.dec?" checked":""} style="display:inline;width:auto"> Deceased (date unknown)</label>
   <div class="row">${f("bplace","Birth place")}${f("dplace","Death place")}</div>
   <div class="row"><label>Birth time (optional)<input type="time" data-f="btime" value="${esc(x.btime)}"></label><label>Death time (optional)<input type="time" data-f="dtime" value="${esc(x.dtime)}"></label></div>
-  <h4>Card colour</h4><div class="sw">${["","#f9cfd2","#fbe0c4","#fbe9a8","#d6e8d0","#c9ece3","#cfe3f3","#ddd3f0"].map(c=>`<span class="s${x.color===c?" on":""}" data-col="${c}" style="background:${c||"var(--card)"}"></span>`).join("")}<input type="color" data-f="color" value="${x.color||"#fffdf6"}"></div>
+  <h4>Card colour</h4><div class="sw">${["",...Object.keys(PAL)].map(c=>`<span class="s${x.color===c?" on":""}" data-col="${c}" style="background:${c||"var(--card)"};border-color:${c?bdr(c):"var(--ink)"}"></span>`).join("")}<input type="color" data-f="color" value="${x.color||"#fffdf6"}"></div>
   <label>Significant dates (one per line, e.g. Married: 1974-06-02)<textarea data-f="dates">${esc(x.dates)}</textarea></label>
   <label>Biography<textarea data-f="bio" style="min-height:110px">${esc(x.bio)}</textarea></label>
   <label>Sources / evidence<textarea data-f="src">${esc(x.src)}</textarea></label>
   <label>Photo<input type="file" accept="image/*" data-photo></label>${x.photo?`<button data-a="rmphoto">Remove photo</button>`:""}
   ${rel("parents","Parents",x.parents)}${rel("siblings","Siblings",sibs(sel))}${rel("spouses","Spouse(s)",x.spouses)}${rel("children","Children",kids(sel))}
-  <h4>Focus view</h4><div class="row"><select id="fm"><option value="up">ancestors</option><option value="down">descendants</option><option value="hg">ancestors + descendants</option><option value="all">connected family</option></select><button data-a="focus">Focus</button></div>
   <h4>How are we related?</h4><select id="rw"><option value="">pick someone…</option>${Object.keys(P()).filter(i=>i!==sel).map(i=>`<option value="${i}">${esc(lab(i))}</option>`).join("")}</select><p id="rr"></p>
   <h4>Export branch</h4><div class="row"><select id="scope"><option value="down">this person + descendants</option><option value="up">this person + ancestors</option><option value="all">whole connected family</option></select><button data-a="expbr">Export</button></div>
   <div class="bar"><button data-a="del">Delete person</button></div></div>`;
 }
 
-function pick(i){sel=i;render();panel()}
+function refocus(){FS=FM&&P()[sel]?(FM==="hg"?new Set([...branch(sel,"up"),...branch(sel,"down")]):branch(sel,FM)):null}
+function pick(i){sel=i;refocus();render();panel();if(FM)fit()}
 function add(rel){
   const id=uid();P()[id]=blank(id);
   if(rel)link(rel.k,rel.of,id);
@@ -196,20 +213,27 @@ function dump(set){
 function openIO(title,text){$("#iot").textContent=title;$("#ta").value=text;$("#msg").textContent="";$("#io").showModal()}
 function merge(){
   try{
-    const tx=$("#ta").value.trim(),d=/^0 HEAD/.test(tx)?{people:fromGed(tx)}:JSON.parse(tx),list=Array.isArray(d)?d:d.people;let n=0;
-    list.forEach(x=>{if(x&&typeof x.id==="string"){P()[x.id]={...blank(x.id),...x};n++}});
-    clean();render();panel();$("#msg").textContent=`Imported ${n} people (matching ids are updated, others added).`;
+    const tx=$("#ta").value.trim(),d=/^0 HEAD/.test(tx)?{people:fromGed(tx)}:JSON.parse(tx),list=(Array.isArray(d)?d:d.people).filter(x=>x&&typeof x.id==="string"),ids=new Set(list.map(x=>x.id)),j=q=>JSON.stringify({...q,u:0});
+    let a=0,u=0,k=0,s=0;
+    // sync: newer record wins per person; relations to people outside the file are kept
+    list.forEach(x=>{const o=P()[x.id],y={...blank(x.id),...x};
+      if(!o){P()[x.id]=y;a++;return}
+      y.parents=[...new Set([...y.parents,...o.parents.filter(i=>!ids.has(i))])];y.spouses=[...new Set([...y.spouses,...o.spouses.filter(i=>!ids.has(i))])];y.ms={...o.ms,...y.ms};y.pt={...o.pt,...y.pt};
+      if(j(y)===j(o))s++;else if((y.u||0)<(o.u||0))k++;else{P()[x.id]=y;u++}});
+    clean();ids.forEach(i=>P()[i]&&sg&&sg.set(i,j(P()[i])));render();panel();
+    $("#msg").textContent=`Synced: ${a} new, ${u} updated, ${k} kept (yours is newer), ${s} unchanged.`;
   }catch(e){$("#msg").textContent="That doesn’t look like a family tree export."}
 }
 
 document.addEventListener("click",e=>{
   const t=e.target,un=t.closest("[data-un]");
   if(un){const [k,i]=un.dataset.un.split(":");unlink(k,sel,i);render();panel();return}
-  const ht=t.closest("[data-hit]");if(ht){FS=null;sr.innerHTML="";q.value="";pick(ht.dataset.hit);return center(ht.dataset.hit)}
+  const ht=t.closest("[data-hit]");if(ht){FM="";$("#fm").value="";FS=null;sr.innerHTML="";q.value="";pick(ht.dataset.hit);return center(ht.dataset.hit)}
+  const lmb=t.closest("[data-lm]");if(lmb){const [k,a,b]=lmb.dataset.lm.split(":");link(k,a,b);$("#lm").hidden=true;render();if(sel)panel();return}
   const sw=t.closest("[data-col]");if(sw){P()[sel].color=sw.dataset.col;render();panel();return}
   const go=t.closest("[data-go]");if(go)return pick(go.dataset.go);
   const nw=t.closest("[data-new]");if(nw)return add({k:nw.dataset.new,of:sel});
-  const n=t.closest(".n");if(n)return pick(n.dataset.id);
+  const n=t.closest(".n,.tb,.ev");if(n)return pick(n.dataset.id);
   const a=t.closest("[data-a]")?.dataset.a;
   if(a==="add")add();
   else if(a==="zi")zoom(1.25,...mid());
@@ -217,8 +241,6 @@ document.addEventListener("click",e=>{
   else if(a==="fit")fit();
   else if(a==="undo")hist(H,R);
   else if(a==="redo")hist(R,H);
-  else if(a==="focus"){FS=$("#fm").value==="hg"?new Set([...branch(sel,"up"),...branch(sel,"down")]):branch(sel,$("#fm").value);render();fit()}
-  else if(a==="unfocus"){FS=null;render();fit()}
   else if(a==="rmphoto"){P()[sel].photo="";render();panel()}
   else if(a==="ged"){try{$("#ta").value=toGed(JSON.parse($("#ta").value))}catch(_){$("#msg").textContent="Export JSON first, then convert."}}
   else if(a==="bgr"){S.bg.c=S.bg.p="";render()}
@@ -232,7 +254,7 @@ document.addEventListener("click",e=>{
   else if(a==="copy"){$("#ta").select();try{navigator.clipboard.writeText($("#ta").value)}catch(_){document.execCommand("copy")}$("#msg").textContent="Copied."}
 });
 document.addEventListener("input",e=>{const f=e.target.dataset.f;if(f&&sel){P()[sel][f]=e.target.value;render()}});
-document.addEventListener("change",e=>{const d=e.target.dataset;if(d.pt){P()[sel].pt[d.pt]=e.target.value;render();return}if(d.c){P()[sel][d.c]=e.target.checked;render();return}if(e.target.id==="rw"){$("#rr").textContent=e.target.value?how(sel,e.target.value):"";return}if("photo" in d){pic(e.target.files[0]);return}const m=e.target.dataset.ms;if(m){P()[sel].ms[m]=P()[m].ms[sel]=e.target.value;render();return}const k=e.target.dataset.link;if(k&&e.target.value){link(k,sel,e.target.value);render();panel()}});
+document.addEventListener("change",e=>{const d=e.target.dataset;if(d.pt){P()[sel].pt[d.pt]=e.target.value;render();return}if(d.c){P()[sel][d.c]=e.target.checked;render();return}if(e.target.id==="vw"){VM=e.target.value;render();fit();return}if(e.target.id==="fm"){FM=e.target.value;refocus();render();fit();return}if(e.target.id==="rw"){$("#rr").textContent=e.target.value?how(sel,e.target.value):"";return}if("photo" in d){pic(e.target.files[0]);return}const m=e.target.dataset.ms;if(m){P()[sel].ms[m]=P()[m].ms[sel]=e.target.value;render();return}const k=e.target.dataset.link;if(k&&e.target.value){link(k,sel,e.target.value);render();panel()}});
 $("#fi").addEventListener("change",e=>{const r=new FileReader();r.onload=()=>{$("#ta").value=r.result};if(e.target.files[0])r.readAsText(e.target.files[0])});
 const stg=$("#stage"),cvs=$("#cv"),q=$("#q"),sr=$("#sr");
 S.bg??={pat:"dots",c:""};$("#pat").value=S.bg.pat;
@@ -243,11 +265,11 @@ function bg(){const b=S.bg||{},c=b.p||"color-mix(in srgb,var(--ink) 22%,transpar
   stg.style.backgroundSize=`${s}px ${s}px`;stg.style.backgroundPosition=`${V.x}px ${V.y}px`}
 function zoom(f,cx,cy){const k=Math.min(3,Math.max(.2,V.k*f));f=k/V.k;V.x=cx-(cx-V.x)*f;V.y=cy-(cy-V.y)*f;V.k=k;view()}
 const mid=()=>[stg.clientWidth/2,stg.clientHeight/2];
-function fit(){if(!Object.keys(P()).length)return;const {w,h}=layout(),k=Math.min(1.2,stg.clientWidth/w,stg.clientHeight/h);V={k,x:(stg.clientWidth-w*k)/2,y:20};view()}
-function center(i){const c=layout().pos[i];V.k=Math.max(V.k,.9);V.x=stg.clientWidth/2-(c.x+78)*V.k;V.y=stg.clientHeight/2-(c.y+41)*V.k;view()}
+function fit(){if(!Object.keys(VP()).length)return;const {w,h}=DIM,k=Math.min(1.2,stg.clientWidth/w,stg.clientHeight/h);V={k,x:(stg.clientWidth-w*k)/2,y:20};view()}
+function center(i){const c=POS[i];if(!c)return;V.k=Math.max(V.k,.9);V.x=stg.clientWidth/2-(c.x+78)*V.k;V.y=stg.clientHeight/2-(c.y+41)*V.k;view()}
 const ptr=new Map();let moved=0;
 stg.addEventListener("wheel",e=>{e.preventDefault();const r=stg.getBoundingClientRect();zoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top)},{passive:false});
-addEventListener("pointerdown",e=>{moved=0;if(stg.contains(e.target)&&!e.target.closest("button"))ptr.set(e.pointerId,[e.clientX,e.clientY])},true);
+addEventListener("pointerdown",e=>{moved=0;if(stg.contains(e.target)&&!e.target.closest("button,select,.lk"))ptr.set(e.pointerId,[e.clientX,e.clientY])},true);
 addEventListener("pointermove",e=>{const o=ptr.get(e.pointerId);if(!o)return;
   const dist=()=>{const v=[...ptr.values()];return v.length>1?Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]):0},d=dist();
   ptr.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(e.clientX-o[0])+Math.abs(e.clientY-o[1]);
@@ -259,9 +281,18 @@ q.addEventListener("input",()=>{const t=q.value.trim().toLowerCase();
   sr.innerHTML=t?Object.keys(P()).filter(i=>(lab(i)+" "+P()[i].other+" "+P()[i].bio).toLowerCase().includes(t)).slice(0,12).map(i=>`<div data-hit="${i}">${esc(lab(i))}</div>`).join("")||"<div>No match</div>":""});
 $("#pat").onchange=e=>{S.bg.pat=e.target.value;render()};$("#bgc").oninput=e=>{S.bg.c=e.target.value;render()};$("#pc").oninput=e=>{S.bg.p=e.target.value;render()};
 const VP=()=>{const p=P();if(!FS)return p;const o={};FS.forEach(i=>{if(p[i])o[i]={...p[i],parents:p[i].parents.filter(q=>FS.has(q)),spouses:p[i].spouses.filter(q=>FS.has(q))}});return o};
-function age(x){const by=+yr(x.born);if(!by)return"";const ey=x.died?+yr(x.died):x.dec?0:new Date().getFullYear();return ey?ey-by:""}
-function snap(){const j=JSON.stringify(S.people);if(j===last)return;if(Date.now()-lt>800||!H.length){H.push(last);if(H.length>40)H.shift()}lt=Date.now();last=j;R=[]}
-function hist(from,to){if(!from.length)return;to.push(last);S.people=JSON.parse(from.pop());clean();last=JSON.stringify(S.people);render();panel()}
+// dates are stored as YYYY, YYYY-MM or YYYY-MM-DD
+function nd(s){s=String(s||"").trim();let m=s.match(/^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/);
+  if(!m){const MO=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"],g=s.toUpperCase().match(/^(?:(\d{1,2}) )?(?:([A-Z]{3}) )?(\d{4})$/);
+    if(g)m=[0,g[3],MO.indexOf(g[2])+1||0,g[2]?+g[1]||0:0];else{const y=s.match(/\d{4}/);return y?y[0]:""}}
+  const mo=+m[2]||0,d=+m[3]||0;return m[1]+(mo>=1&&mo<=12?"-"+String(mo).padStart(2,"0")+(d>=1&&d<=31?"-"+String(d).padStart(2,"0"):""):"")}
+const fy=s=>{const m=String(s||"").match(/^(\d{4})(?:-(\d\d))?(?:-(\d\d))?/);return m?+m[1]+((+m[2]||1)-1)/12+((+m[3]||1)-1)/365:0};
+function age(x){const b=fy(x.born);if(!b)return"";const n=new Date(),e=x.died?fy(x.died):x.dec?0:n.getFullYear()+n.getMonth()/12+(n.getDate()-1)/365;return e?Math.max(0,Math.floor(e-b+1e-9)):""}
+const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function dpHTML(x,k,l){const [y="",m="",d=""]=String(x[k]||"").split("-");
+  return `<label>${l}</label><div class="row dp" data-dk="${k}"><input type="number" min="1" max="9999" placeholder="Year" data-dp value="${esc(y)}"><select data-dp><option value="">month</option>${MN.map((n,i)=>{const v=String(i+1).padStart(2,"0");return `<option value="${v}"${m===v?" selected":""}>${n}</option>`}).join("")}</select><input type="number" min="1" max="31" placeholder="Day" data-dp value="${esc(d?+d:"")}"></div>`}
+function snap(){const init=!sg;sg??=new Map();for(const i in S.people){const x=S.people[i],z=JSON.stringify({...x,u:0});if(sg.get(i)!==z){if(!init)x.u=Date.now();sg.set(i,z)}}const j=JSON.stringify(S.people);if(j===last)return;if(Date.now()-lt>800||!H.length){H.push(last);if(H.length>40)H.shift()}lt=Date.now();last=j;R=[]}
+function hist(from,to){if(!from.length)return;to.push(last);S.people=JSON.parse(from.pop());clean();sg=null;last=JSON.stringify(S.people);render();panel()}
 addEventListener("keydown",e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();if(k==="z"){e.preventDefault();e.shiftKey?hist(R,H):hist(H,R)}else if(k==="y"){e.preventDefault();hist(R,H)}});
 function pic(f){if(!f)return;const im=new Image(),r=new FileReader();r.onload=()=>{im.src=r.result};im.onload=()=>{const c=document.createElement("canvas"),s=Math.min(im.width,im.height);c.width=c.height=128;c.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);P()[sel].photo=c.toDataURL("image/jpeg",.75);render();panel()};r.readAsDataURL(f)}
 function how(a,b){const p=P(),up=s=>{const d={[s]:0},q=[s];while(q.length){const c=q.shift();p[c].parents.forEach(x=>{if(d[x]==null){d[x]=d[c]+1;q.push(x)}})}return d},A=up(a),B=up(b);
@@ -275,7 +306,7 @@ function how(a,b){const p=P(),up=s=>{const d={[s]:0},q=[s];while(q.length){const
   return `${nm(b)} is ${nm(a)}’s ${r}.`}
 function toGed(d){const ps=d.people,X=i=>"@"+i.toUpperCase()+"@",MO=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"],o=["0 HEAD","1 GEDC","2 VERS 7.0"],F={};
   const dt=(s,l,t)=>{const a=dt0(s,l);if(t&&a[0]&&/ DATE /.test(a[0]))a.splice(1,0,`${l+1} TIME ${t}`);return a},dt0=(s,l)=>{s=String(s||"").trim();if(!s)return[];const m=s.match(/^(\d{4})-(\d\d)-(\d\d)$/),y=s.match(/\d{4}/);
-    return m?[`${l} DATE ${+m[3]} ${MO[m[2]-1]} ${m[1]}`]:/^\d{4}$/.test(s)?[`${l} DATE ${s}`]:y?[`${l} DATE ABT ${y[0]}`,`${l+1} PHRASE ${s}`]:[`${l} NOTE ${s}`]};
+    const ym=s.match(/^(\d{4})-(\d\d)$/);if(ym)return[`${l} DATE ${MO[ym[2]-1]} ${ym[1]}`];return m?[`${l} DATE ${+m[3]} ${MO[m[2]-1]} ${m[1]}`]:/^\d{4}$/.test(s)?[`${l} DATE ${s}`]:y?[`${l} DATE ABT ${y[0]}`,`${l+1} PHRASE ${s}`]:[`${l} NOTE ${s}`]};
   const note=t=>String(t).split("\n").map((s,k)=>k?`2 CONT ${s}`:`1 NOTE ${s}`);
   ps.forEach(p=>{const a=p.parents.slice(0,2).sort();if(a.length)(F[a.join("|")]??={a,c:[]}).c.push(p.id);p.spouses.forEach(s=>{if(s>p.id)(F[p.id+"|"+s]??={a:[p.id,s],c:[]}).st=p.ms[s]||"married"})});
   const fk=Object.keys(F);fk.forEach((k,n)=>F[k].x="@F"+(n+1)+"@");
@@ -309,6 +340,48 @@ function fromGed(t){const M={},idOf=x=>M[x]??=(/^@[A-Z0-9]{7}@$/.test(x)?x.slice
     if(ps.length===2){const[a,b]=ps;people[a].spouses.push(b);people[b].spouses.push(a);people[a].ms[b]=people[b].ms[a]=f.st||"partner"}
     f.c.forEach(c=>{const p=people[c];if(p)ps.forEach(q=>{p.parents.push(q);const t=PD[c+f.xr];if(t)p.pt[q]=t})})});
   return Object.values(people).map(p=>{delete p.k;const o=OB[p.ob];delete p.ob;if(/^data:image\//.test(o||""))p.photo=o;return p})}
+const rb=$("#rb"),rl=rb.firstElementChild,lm=$("#lm");
+// drag the ⊕ on a card onto another card to link them
+function lkEnd(e){const a=LK;LK=null;rb.style.display="none";moved=9;const n=document.elementFromPoint(e.clientX,e.clientY)?.closest(".n");if(!a||!n||n.dataset.id===a)return;
+  const b=n.dataset.id,dn=s=>{const d=new Set([s]),q=[s];while(q.length)kids(q.shift()).forEach(c=>{if(!d.has(c)){d.add(c);q.push(c)}});return d},
+    o=[["parents","parent",dn(a).has(b)],["children","child",dn(b).has(a)],["spouses","spouse",0],["siblings","sibling",0]];
+  lm.innerHTML=`<b>${esc(nm(b))} is ${esc(nm(a))}’s…</b>`+o.map(x=>`<button data-lm="${x[0]}:${a}:${b}"${x[2]?" disabled":""}>${x[1]}</button>`).join("");
+  lm.style.left=Math.min(e.clientX,innerWidth-210)+"px";lm.style.top=Math.min(e.clientY,innerHeight-200)+"px";lm.hidden=false}
+addEventListener("pointerdown",e=>{const h=e.target.closest(".lk");if(!h)return;const r=h.closest(".n").getBoundingClientRect(),s=stg.getBoundingClientRect(),x=r.left+r.width/2-s.left,y=r.top+r.height/2-s.top;LK=h.dataset.lk;["x1","x2"].forEach(k=>rl.setAttribute(k,x));["y1","y2"].forEach(k=>rl.setAttribute(k,y));rb.style.display="block";e.preventDefault()},true);
+addEventListener("pointermove",e=>{if(!LK)return;const s=stg.getBoundingClientRect();rl.setAttribute("x2",e.clientX-s.left);rl.setAttribute("y2",e.clientY-s.top)});
+addEventListener("pointerup",e=>{if(LK)lkEnd(e)});
+addEventListener("click",e=>{const t=e.target;if(!t.closest("#lm"))lm.hidden=true;if(!t.closest("#set")||t.closest("[data-a=expall],[data-a=imp]"))$("#set").open=false});
+// timeline: one bar per person with a birth year, packed into rows
+function tl(p,ids){const Y=new Date().getFullYear(),PY=8,R=[],und=[],pos={},rows=[];
+  ids.forEach(i=>{const x=p[i],b=fy(x.born),d=x.died?fy(x.died):0;if(!b)und.push(i);else R.push({i,b,e:d||(x.dec?b+1:Math.min(Y,b+100))})});
+  R.sort((a,b)=>a.b-b.b);
+  const lo=Math.floor(Math.min(...R.map(r=>r.b),Y)/10)*10-10,hi=Math.ceil(Math.max(...R.map(r=>r.e),lo+10)/10)*10+10,X=y=>(y-lo)*PY+20;
+  const bars=R.map(r=>{const x=p[r.i],bx=X(r.b),bw=Math.max(10,(r.e-r.b)*PY);let k=rows.findIndex(e=>e<bx);if(k<0)k=rows.length;rows[k]=Math.max(bx+bw,bx+nm(r.i).length*9+16)+8;
+    const y=44+k*40;pos[r.i]={x:bx+bw/2-78,y:y-23};
+    return `<div class="tb${r.i===sel?" sel":""}" data-id="${r.i}" style="left:${bx}px;top:${y}px"><span>${esc(nm(r.i))}</span><i style="width:${bw}px;${x.color?`background:${esc(x.color)};border-color:${bdr(x.color)}`:""}"></i></div>`});
+  let tk="";for(let y=lo;y<=hi;y+=10)tk+=`<div class="tk" style="left:${X(y)}px">${y%20===0?y:""}</div>`;
+  const w=X(hi)+40,h=44+rows.length*40+50;
+  return {pos,w,h,html:tk+bars.join("")+(und.length?`<div class="und" style="left:20px;top:${h-34}px">${und.length} without a birth year not shown</div>`:"")}}
+addEventListener("input",e=>{if(!("dp" in e.target.dataset))return;const w=e.target.closest(".dp"),[yi,mo,di]=w.children,y=yi.value.trim();let v="";
+  if(y){if(!/^\d{4}$/.test(y))return;v=y;if(mo.value){v+="-"+mo.value;const d=Math.min(+di.value||0,new Date(+y,+mo.value,0).getDate());if(d>0)v+="-"+String(d).padStart(2,"0")}}
+  P()[sel][w.dataset.dk]=v;render()});
+// events view: one axis, markers for births, deaths, marriages and other dated notes ("Label: date" lines)
+function ev(p,ids){const E={},PY=14,sym={birth:"✦",death:"†",marriage:"♥",other:"◆"};
+  const add=(type,d,label,i)=>{const t=fy(d);if(!t)return;const k=type+"|"+d+"|"+label.toLowerCase()+(type==="birth"||type==="death"?"|"+i:"");(E[k]??={type,d,label,t,ids:[]}).ids.push(i)};
+  ids.forEach(i=>{const x=p[i];add("birth",x.born,"",i);add("death",x.died,"",i);
+    String(x.dates||"").split("\n").filter(s=>s.trim()).forEach(s=>{const k=s.indexOf(":"),l=k>0?s.slice(0,k).trim():"Event";add(/marri|wedd/i.test(l)?"marriage":"other",nd(k>0?s.slice(k+1):s),l,i)})});
+  const L=Object.values(E).sort((a,b)=>a.t-b.t);
+  if(!L.length)return {pos:{},w:520,h:220,html:`<div class="und" style="left:40px;top:80px">No dated events yet. Add birth or death dates, or significant dates like “Married: 1974-06-02”.</div>`};
+  const lo=Math.floor(L[0].t/5)*5-5,hi=Math.ceil(L[L.length-1].t/5)*5+5,X=t=>(t-lo)*PY+30,lv=[[],[]],pl=[],pos={};
+  L.forEach((e,n)=>{const names=e.ids.map(i=>nm(i)).join(e.type==="marriage"?" & ":", "),txt=`${sym[e.type]} ${e.d} · ${e.type==="birth"||e.type==="death"?names:e.label+": "+names}`,x=X(e.t),lw=txt.length*8+24,s=n%2,a=lv[s];
+    let k=a.findIndex(z=>z<x-8);if(k<0)k=a.length;a[k]=x+lw;pl.push({e,txt,x,lw,s,k})});
+  const A=Math.max(1,lv[0].length),B=Math.max(1,lv[1].length),AX=62+(A-1)*34,h=AX+98+(B-1)*34,w=Math.max(X(hi)+40,...pl.map(q=>q.x+q.lw+30)),step=[1,2,5,10,20,50,100].find(s=>s*PY>=60);
+  let o=`<div class="ax" style="left:20px;width:${X(hi)-20}px;top:${AX}px"></div>`;
+  for(let y=Math.ceil(lo/step)*step;y<=hi;y+=step)o+=`<div class="at" style="left:${X(y)}px;top:${AX}px"></div><div class="ak" style="left:${X(y)-14}px;top:${AX+8}px">${y}</div>`;
+  pl.forEach(({e,txt,x,lw,s,k})=>{const top=s?AX+30+k*34:AX-52-k*34,y1=s?AX:top+28,y2=s?top:AX;
+    e.ids.forEach(i=>pos[i]={x:x-78,y:top-13});
+    o+=`<div class="es" style="left:${x}px;top:${y1}px;height:${y2-y1}px"></div><div class="ed" style="left:${x-6}px;top:${AX-6}px"></div><div class="ev k-${e.type}${e.ids.includes(sel)?" sel":""}" data-id="${e.ids[0]}" style="left:${x-8}px;top:${top}px;width:${lw}px">${esc(txt)}</div>`});
+  return {pos,w,h,html:o}}
 clean();last=JSON.stringify(S.people);render();fit();
 </script>
 </body>
