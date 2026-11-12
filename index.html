@@ -113,7 +113,7 @@ function unlink(k,a,b){const p=P(),d=(arr,v)=>arr.splice(0,arr.length,...arr.fil
   if(k==="parents")d(p[a].parents,b);else if(k==="children")d(p[b].parents,a);else if(k==="siblings")p[b].parents=p[b].parents.filter(q=>!p[a].parents.includes(q));else{d(p[a].spouses,b);d(p[b].spouses,a)}}
 
 function edges(p,pos){
-  const ids=Object.keys(p),fam={},o=[],adj=(a,b)=>pos[a].y===pos[b].y&&Math.abs(pos[a].x-pos[b].x)===CW,
+  const ids=Object.keys(p),fam={},o=[],lanes={},adj=(a,b)=>pos[a].y===pos[b].y&&Math.abs(pos[a].x-pos[b].x)===CW,
     mk={married:"♥",partner:"♡",engaged:"◇",separated:"sep.",divorced:"div.",widowed:"wid."};
   // couples: a short line between adjacent cards (status symbol above it); otherwise a bracket underneath
   ids.forEach(i=>p[i].spouses.forEach(s=>{if(s<=i)return;const a=pos[i],b=pos[s],t=p[i].ms[s]||"married";
@@ -121,34 +121,59 @@ function edges(p,pos){
     else o.push(`<path class="sp ${t}" d="M${a.x+78} ${a.y+CH}v12H${b.x+78}V${b.y+CH}"/>`)}));
   // children: one family = one trunk + one bus + one drop per child
   ids.forEach(i=>{const ps=[...p[i].parents].sort();if(ps.length)(fam[ps.join("|")]??={ps,ch:[]}).ch.push(i)});
-  const rn={};
   Object.values(fam).sort((a,b)=>pos[a.ch[0]].x-pos[b.ch[0]].x).forEach(f=>{
-    const cy=pos[f.ch[0]].y,n=rn[cy]=(rn[cy]||0)+1,by=cy-38+(n%3)*9,src=[];let ps=f.ps;
+    const cy=pos[f.ch[0]].y,src=[];let ps=f.ps;
     if(ps.length>1&&p[ps[0]].spouses.includes(ps[1])&&adj(ps[0],ps[1])){const a=pos[ps[0]],b=pos[ps[1]];src.push([Math.min(a.x,b.x)+156+(CW-156)/2,a.y+41]);ps=ps.slice(2)}
     ps.forEach(q=>src.push([pos[q].x+78,pos[q].y+CH]));
-    const xs=[...src.map(s=>s[0]),...f.ch.map(c=>pos[c].x+78)];
-    o.push(`<path d="${src.map(s=>`M${s[0]} ${s[1]}V${by}`).join("")}M${Math.min(...xs)} ${by}H${Math.max(...xs)}"/>`);
+    const xs=[...src.map(s=>s[0]),...f.ch.map(c=>pos[c].x+78)],lo=Math.min(...xs),hi=Math.max(...xs),L=lanes[cy]??=[];
+    // bus height: lowest lane not already used by an overlapping bus in the same row
+    let k=0;while(L.some(b=>b.k===k&&b.lo<hi+8&&b.hi>lo-8))k++;L.push({k,lo,hi});
+    const by=cy-40+Math.min(k,4)*7;
+    o.push(`<path d="${src.map(s=>`M${s[0]} ${s[1]}V${by}`).join("")}M${lo} ${by}H${hi}"/>`);
     f.ch.forEach(c=>o.push(`<path class="pt-${p[c].pt[f.ps[0]]||"biological"}" d="M${pos[c].x+78} ${by}V${pos[c].y}"/>`))});
   return o.join("")}
 function layout(){
-  const p=VP(),ids=Object.keys(p),g={},bk=i=>{const m=String(p[i].born||"").match(/(\d{4})(?:-(\d\d))?(?:-(\d\d))?/);return m?m[1]*372+(m[2]||0)*31+(+m[3]||0):1e12};ids.forEach(i=>g[i]=0);
-  for(let n=0;n<ids.length+2;n++){let ch=false;
-    ids.forEach(i=>{let v=g[i];p[i].parents.forEach(q=>v=Math.max(v,g[q]+1));p[i].spouses.forEach(q=>v=Math.max(v,g[q]));if(v!==g[i]){g[i]=v;ch=true}});
+  const p=VP(),ids=Object.keys(p),g={},K={},X={},GAP=40,
+    bk=i=>{const m=String(p[i].born||"").match(/(\d{4})(?:-(\d\d))?(?:-(\d\d))?/);return m?m[1]*372+(m[2]||0)*31+(+m[3]||0):1e12};
+  ids.forEach(i=>{g[i]=0;K[i]=[]});ids.forEach(c=>p[c].parents.forEach(a=>K[a].push(c)));
+  // 1. generations: parents above children, spouses level, parentless people pulled down next to their earliest child
+  for(let n=0;n<ids.length*3+3;n++){let ch=false;
+    ids.forEach(i=>{let v=g[i];p[i].parents.forEach(q=>v=Math.max(v,g[q]+1));p[i].spouses.forEach(q=>v=Math.max(v,g[q]));
+      if(!p[i].parents.length&&!p[i].spouses.length&&K[i].length)v=Math.max(v,Math.min(...K[i].map(c=>g[c]))-1);
+      if(v!==g[i]){g[i]=v;ch=true}});
     if(!ch)break}
-  const rows=[];ids.forEach(i=>(rows[g[i]]??=[]).push(i));
-  const pos={};
-  rows.forEach((r,gi)=>{
-    const key=i=>{const ps=p[i].parents.filter(q=>pos[q]);return ps.length?ps.reduce((a,q)=>a+pos[q].x,0)/ps.length:1e9};
-    r.sort((a,b)=>key(a)-key(b)||bk(a)-bk(b)||nm(a).localeCompare(nm(b)));
-    const out=[],seen=new Set();
-    r.forEach(i=>{if(seen.has(i))return;seen.add(i);out.push(i);p[i].spouses.forEach(s=>{if(g[s]===gi&&!seen.has(s)){seen.add(s);out.push(s)}})});
-    // units = a person plus attached spouses; sibling units are centred under their parents, never pushed left of the previous card
-    const U=[];out.forEach(i=>{const u=U[U.length-1];if(u&&u.m.some(m=>p[m].spouses.includes(i)))u.m.push(i);else U.push({m:[i]})});
-    U.forEach(u=>{const ks=u.m.map(key).filter(k=>k<1e9);u.d=ks.length?ks.reduce((a,b)=>a+b)/ks.length:null});
-    const G=[];U.forEach(u=>{const q=G[G.length-1];if(q&&u.d!=null&&q.d===u.d)q.u.push(u);else G.push({d:u.d,u:[u]})});
-    let cur=24;G.forEach(q=>{const n=q.u.reduce((a,u)=>a+u.m.length,0);let x=q.d==null?cur:Math.max(cur,q.d-(n-1)*CW/2);q.u.forEach(u=>u.m.forEach(i=>{pos[i]={x,y:gi*RH+30};x+=CW}));cur=x});
-  });
-  return {pos,w:Math.max(0,...Object.values(pos).map(q=>q.x))+156+24,h:rows.length*RH+40};
+  const gs=[...new Set(ids.map(i=>g[i]))].sort((a,b)=>a-b);ids.forEach(i=>g[i]=gs.indexOf(g[i]));
+  const rows=gs.map(()=>[]);ids.forEach(i=>rows[g[i]].push(i));
+  // 2. units = a person plus attached spouses (a person with 2+ spouses sits in the middle: s1 A s2)
+  const U=rows.map(r=>{r.sort((a,b)=>bk(a)-bk(b)||(a<b?-1:1));const seen=new Set(),out=[];
+    r.forEach(i=>{if(seen.has(i))return;seen.add(i);const m=[i];
+      for(let k=0;k<m.length;k++)p[m[k]].spouses.forEach(s=>{if(g[s]===g[i]&&!seen.has(s)){seen.add(s);m.push(s)}});
+      const h=m.length>2&&m.find(a=>m.every(b=>b===a||p[a].spouses.includes(b)));
+      if(h){const o=m.filter(a=>a!==h),k=o.length>>1;m.splice(0,m.length,...o.slice(0,k),h,...o.slice(k))}
+      out.push({m,h:!!h,f:m.map(a=>[...p[a].parents].sort().join()).find(Boolean)||""})});
+    return out});
+  const sp=(a,b)=>a.m.length*CW+(a.f&&a.f===b.f?0:GAP),               // start-to-start distance; siblings sit closer than other families
+    vw=u=>(u.m.length-1)*CW+156,put=u=>u.m.forEach((i,k)=>X[i]=Math.round(u.x)+k*CW),
+    pc=i=>{const q=p[i].parents.filter(a=>X[a]!=null);return q.length?q.reduce((s,a)=>s+X[a]+78,0)/q.length:null},T=a=>a[a.length-1];
+  // place a row: every unit wants x=u.d (weight u.t); overlapping units are merged into blocks and centred on their average wish
+  const solve=r=>{const B=[];
+    r.forEach(u=>{let b={u:[u],o:[0],w:u.t,s:u.t*u.d,x:u.d};
+      for(let a;(a=T(B))&&a.x+T(a.o)+sp(T(a.u),b.u[0])>b.x;){
+        const D=T(a.o)+sp(T(a.u),b.u[0]);B.pop();
+        b={u:[...a.u,...b.u],o:[...a.o,...b.o.map(v=>v+D)],w:a.w+b.w,s:a.s+b.s-D*b.w};b.x=b.s/b.w}
+      B.push(b)});
+    B.forEach(b=>b.u.forEach((u,k)=>{u.x=b.x+b.o[k];put(u)}))},
+  run=(r,key)=>{r.forEach(u=>{const c=key(u);u.t=c==null?.01:1;u.k=c==null?u.x+vw(u)/2:c;u.d=u.k-vw(u)/2});r.sort((a,b)=>a.k-b.k);solve(r)},
+  mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:null;
+  U.forEach(r=>{let x=24;r.forEach((u,k)=>{u.x=x;put(u);if(r[k+1])x+=sp(u,r[k+1])})});
+  // 3. alternate: children under their parents (top-down), parents over their children (bottom-up)
+  for(let n=0;n<4;n++){
+    for(let gi=1;gi<U.length;gi++){U[gi].forEach(u=>{if(!u.h&&u.m.length===2)u.m.sort((a,b)=>(pc(a)??1e9)-(pc(b)??1e9))});
+      run(U[gi],u=>mean(u.m.map(pc).filter(k=>k!=null)))}
+    for(let gi=U.length-2;gi>=0;gi--)
+      run(U[gi],u=>{const c=[...new Set(u.m.flatMap(i=>K[i]))].map(i=>X[i]+78);return c.length?(Math.min(...c)+Math.max(...c))/2:null})}
+  const dx=24-Math.min(...ids.map(i=>X[i])),pos={};ids.forEach(i=>pos[i]={x:X[i]+dx,y:g[i]*RH+30});
+  return {pos,w:Math.max(...ids.map(i=>pos[i].x))+156+24,h:U.length*RH+40};
 }
 
 function render(){
