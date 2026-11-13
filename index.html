@@ -768,7 +768,7 @@
     }
 
     function edges(p, pos) {
-      const ids = Object.keys(p), o = [], lanes = {}, LP = [], UN = {}, cen = i => pos[i].x + 78, bot = i => pos[i].y + CH,
+      const ids = Object.keys(p), o = [], lanes = {}, LP = [], RT = {}, CHN = [], FB = [], FV = [], UN = {}, cen = i => pos[i].x + 78, bot = i => pos[i].y + CH,
         mk = { married: "♥", partner: "♡", engaged: "◇", separated: "sep.", divorced: "div.", widowed: "wid." };
       const adj = (a, b) => pos[a].y === pos[b].y && Math.abs(pos[a].x - pos[b].x) === CW;
       // 1. one union point per couple: a dot sits between the two partners, and every child of that couple drops from it
@@ -783,7 +783,7 @@
           // partners not side by side: a U under the row; each loop from the same card gets its own depth so none overlap
           const b0 = Math.max(bot(i), bot(s)), lo = Math.min(cen(i), cen(s)), hi = Math.max(cen(i), cen(s)); let k = 0;
           while (LP.some(z => z.k === k && z.b0 === b0 && z.lo < hi && z.hi > lo)) k++; LP.push({ k, b0, lo, hi });
-          const y = b0 + 24 + Math.min(k, 2) * 12;
+          const y = b0 + 14 + Math.min(k, 2) * 12;
           // put the dot where no other vertical line in this row is (card centres, gap centres, other loop dots)
           const oc = ids.filter(q => pos[q].y === pos[i].y).flatMap(q => [cen(q), cen(q) + CW / 2, cen(q) - CW / 2]).concat(LP.filter(z => z.b0 === b0 && z.x != null).map(z => z.x));
           let x = (lo + hi) / 2, bs = -1e9;
@@ -795,16 +795,28 @@
         o.push(`<circle class="ud" cx="${UN[key].x}" cy="${UN[key].y}" r="4"/>`)
       }));
       // 2. one family = one bus from its union dot (or from a single parent), one drop per child; step-parents are not part of the bus
+      const hv = (x, y1, y2, f) => { let d = `M${x} ${y1}`, e = -1e9; FB.filter(b => b.f !== f && b.y > y1 + 8 && b.y < y2 - 8 && x > b.lo + 4 && x < b.hi - 4).sort((a, b) => a.y - b.y).forEach(b => { if (b.y - 4 > e) { d += `V${b.y - 4}a4 4 0 0 1 0 8`; e = b.y + 4 } }); return d + `V${y2}` };
       const fam = {}; ids.forEach(i => { const ps = [...p[i].parents].sort(); if (ps.length) (fam[ps.join("|")] ??= { ps, ch: [] }).ch.push(i) });
       Object.values(fam).sort((a, b) => pos[a.ch[0]].x - pos[b.ch[0]].x).forEach(f => {
         const cy = pos[f.ch[0]].y, L = lanes[cy] ??= [], [a, b] = f.ps, sp = f.ps.length === 2 && p[a].spouses.includes(b);
-        const src = sp ? [UN[[a, b].sort().join("|")]] : f.ps.map(q => ({ x: cen(q), y: bot(q) }));
-        const xs = [...src.map(s => s.x), ...f.ch.map(c => cen(c))], lo = Math.min(...xs), hi = Math.max(...xs);
+        let src = sp ? [{ ...UN[[a, b].sort().join("|")], q: a }] : f.ps.map(q => ({ x: cen(q), y: bot(q), q }));
+        // parents several rows above their children (e.g. a child who married into a much younger branch): leave the parent's row,
+        // then run down a free channel between cards instead of straight through the rows in between
+        src = src.map(s => {
+          const rb = pos[s.q].y + CH; if (cy - 10 - rb < 100) return s;
+          const free = x => x > 6 && !ids.some(i => pos[i].y >= rb - 1 && pos[i].y < cy - 10 && x > pos[i].x - 8 && x < pos[i].x + 164) && !CHN.some(u => Math.abs(u - x) < 8);
+          let xc = s.x; for (let d = 0; d < 6000; d += 4) { const c = [s.x + d, s.x - d].find(free); if (c != null) { xc = c; break } }
+          const n = RT[rb] = (RT[rb] || 0) + 1; CHN.push(xc); return { ...s, xc, ya: Math.max(s.y + 8, rb + 8 + (n % 5) * 5) }
+        });
+        const xs = [...src.map(s => s.xc ?? s.x), ...f.ch.map(c => cen(c))], lo = Math.min(...xs), hi = Math.max(...xs);
         let k = 0; while (L.some(z => z.k === k && z.lo < hi + 8 && z.hi > lo - 8)) k++; L.push({ k, lo, hi });
         const by = cy - 38 + Math.min(k, 4) * 7;
-        o.push(`<path d="${src.map(s => `M${s.x} ${s.y}V${by}`).join("")}M${lo} ${by}H${hi}"/>`);
-        f.ch.forEach(c => o.push(`<path class="pt-${p[c].pt[f.ps[0]] || "biological"}" d="M${cen(c)} ${by}V${pos[c].y}"/>`))
+        // drawn after all families are known, so a vertical can hop over another family's bus instead of looking joined to it
+        FB.push({ y: by, lo, hi, f });
+        FV.push(() => `<path d="${src.map(s => s.xc != null ? hv(s.x, s.y, s.ya, f) + `M${s.x} ${s.ya}H${s.xc}` + hv(s.xc, s.ya, by, f) : hv(s.x, s.y, by, f)).join("")}M${lo} ${by}H${hi}"/>`);
+        f.ch.forEach(c => FV.push(() => `<path class="pt-${p[c].pt[f.ps[0]] || "biological"}" d="${hv(cen(c), by, pos[c].y, f)}"/>`))
       });
+      FV.forEach(g => o.push(g()));
       // 3. step-parents: a dashed line from the step-parent's card straight to each step-child, never sharing a bus
       ids.forEach(c => (p[c].stepParents || []).forEach((s, n) => {
         if (!pos[s] || !pos[c]) return;
@@ -817,12 +829,12 @@
       const p = VP(), ids = Object.keys(p), g = {}, K = {}, X = {}, GAP = 40,
         bk = i => { const m = String(p[i].born || "").match(/(\d{4})(?:-(\d\d))?(?:-(\d\d))?/); return m ? m[1] * 372 + (m[2] || 0) * 31 + (+m[3] || 0) : 1e12 };
       ids.forEach(i => { g[i] = 0; K[i] = [] }); ids.forEach(c => p[c].parents.forEach(a => K[a].push(c)));
-      // 1. generations: parents above children, spouses level, parentless people pulled down next to their earliest child
+      // 1. generations: parents above children, spouses level, parentless people (married or not) pulled down next to their earliest child
       for (let n = 0; n < ids.length * 3 + 3; n++) {
         let ch = false;
         ids.forEach(i => {
           let v = g[i]; p[i].parents.forEach(q => v = Math.max(v, g[q] + 1)); p[i].spouses.forEach(q => v = Math.max(v, g[q]));
-          if (!p[i].parents.length && !p[i].spouses.length && K[i].length) v = Math.max(v, Math.min(...K[i].map(c => g[c])) - 1);
+          if (!p[i].parents.length && K[i].length) v = Math.max(v, Math.min(...K[i].map(c => g[c])) - 1);
           if (v !== g[i]) { g[i] = v; ch = true }
         });
         if (!ch) break
@@ -836,51 +848,64 @@
           if (seen.has(i)) return; seen.add(i); const m = [i];
           for (let k = 0; k < m.length; k++)p[m[k]].spouses.forEach(s => { if (g[s] === g[i] && !seen.has(s)) { seen.add(s); m.push(s) } });
           const h = m.length > 2 && m.find(a => m.every(b => b === a || p[a].spouses.includes(b)));
-          if (h) { // past partners on the left (oldest first), current partner(s) on the right, next to the hub
+          if (h) { // past and extra partners on the left (oldest first), the current partner on the right next to the hub, so the hub stays between its partners
             const old = a => /^(divorced|separated|widowed)$/.test(p[h].ms[a]), o = p[h].spouses.filter(a => m.includes(a)), L = o.filter(old), Rt = o.filter(a => !old(a));
-            if (!Rt.length && L.length > 1) Rt.push(L.pop()); m.splice(0, m.length, ...L, h, ...Rt) }
+            while (Rt.length > 1) L.push(Rt.pop()); if (!Rt.length && L.length > 1) Rt.push(L.pop()); m.splice(0, m.length, ...L, h, ...Rt) }
           out.push({ m, h: !!h, f: m.map(a => [...p[a].parents].sort().join()).find(Boolean) || "" })
         });
         return out
       });
-      const sp = (a, b) => a.m.length * CW + (a.f && a.f === b.f ? 0 : GAP),               // start-to-start distance; siblings sit closer than other families
-        vw = u => (u.m.length - 1) * CW + 156, put = u => u.m.forEach((i, k) => X[i] = Math.round(u.x) + k * CW),
-        pc = i => { const q = p[i].parents.filter(a => X[a] != null); return q.length ? q.reduce((s, a) => s + X[a] + 78, 0) / q.length : null }, T = a => a[a.length - 1];
-      // place a row: every unit wants x=u.d (weight u.t); overlapping units are merged into blocks and centred on their average wish
-      const solve = r => {
-        const B = [];
-        r.forEach(u => {
-          let b = { u: [u], o: [0], w: u.t, s: u.t * u.d, x: u.d };
-          for (let a; (a = T(B)) && a.x + T(a.o) + sp(T(a.u), b.u[0]) > b.x;) {
-            const D = T(a.o) + sp(T(a.u), b.u[0]); B.pop();
-            b = { u: [...a.u, ...b.u], o: [...a.o, ...b.o.map(v => v + D)], w: a.w + b.w, s: a.s + b.s - D * b.w }; b.x = b.s / b.w
-          }
-          B.push(b)
+      // 3. tree layout, one contour per generation row (Reingold–Tilford style):
+      // every unit hangs under one primary parent unit, sibling subtrees are pushed apart row by row so two branches can never overlap or
+      // interleave however many generations up they split, and a parent is centred over its children
+      const all = U.flat(), UO = {}, ord = {}; all.forEach(u => u.m.forEach(i => UO[i] = u)); ids.forEach((i, n) => ord[i] = n);
+      all.forEach(u => { u.vw = (u.m.length - 1) * CW + 156; u.row = g[u.m[0]]; u.kids = []; u.par = null; u.sat = false; u.bi = null; u.anc = 78; u.sa = { b: [], a: [] } });
+      const anc = u => u.m.some(a => p[a].parents.length);
+      // primary parent: through the member whose parents have ancestors of their own (the bloodline), otherwise the first member with parents
+      all.forEach(u => {
+        let best = null;
+        u.m.forEach((i, k) => {
+          if (!p[i].parents.length) return;
+          const pr = p[i].parents.find(q => UO[q] !== u && anc(UO[q])) ?? p[i].parents.find(q => UO[q] !== u); if (pr == null) return;
+          const sc = anc(UO[pr]) ? 1 : 0; if (!best || sc > best.sc) best = { sc, i, k, pr }
         });
-        B.forEach(b => b.u.forEach((u, k) => { u.x = b.x + b.o[k]; put(u) }))
-      },
-        run = (r, key) => {
-          r.forEach(u => { const c = key(u); u.t = c == null ? .01 : 1; u.k = c == null ? u.x + vw(u) / 2 : c; u.d = u.k - vw(u) / 2 }); r.sort((a, b) => a.k - b.k);
-          // siblings (same parent set) take the slots they already occupy, filled oldest to youngest
-          const G = {}, seen = new Set(); r.forEach((u, ix) => { u.m.forEach(i => { if (!p[i].parents.length) return; const k = [...p[i].parents].sort().join("|"); if (!seen.has(u) || true) (G[k] ??= []).push({ ix, i, u }) }) });
-          for (const k in G) {
-            let e = G[k].filter(z => !seen.has(z.u)); if (e.length < 2) continue; e.forEach(z => seen.add(z.u));
-            const sl = e.map(z => ({ k: r[z.ix].k, d: r[z.ix].d })), ix = e.map(z => z.ix), us = e.slice().sort((a, b) => bk(a.i) - bk(b.i) || (a.i < b.i ? -1 : 1));
-            us.forEach((z, j) => { r[ix[j]] = z.u; z.u.k = sl[j].k; z.u.d = sl[j].d })
-          }
-          solve(r)
-        },
-        mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : null;
-      U.forEach(r => { let x = 24; r.forEach((u, k) => { u.x = x; put(u); if (r[k + 1]) x += sp(u, r[k + 1]) }) });
-      // 3. alternate: children under their parents (top-down), parents over their children (bottom-up)
-      for (let n = 0; n < 4; n++) {
-        for (let gi = 1; gi < U.length; gi++) {
-          U[gi].forEach(u => { if (!u.h && u.m.length === 2) u.m.sort((a, b) => (pc(a) ?? 1e9) - (pc(b) ?? 1e9)) });
-          run(U[gi], u => mean(u.m.map(pc).filter(k => k != null)))
-        }
-        for (let gi = U.length - 2; gi >= 0; gi--)
-          run(U[gi], u => { const c = [...new Set(u.m.flatMap(i => K[i]))].map(i => X[i] + 78); return c.length ? (Math.min(...c) + Math.max(...c)) / 2 : null })
-      }
+        if (best) { u.par = UO[best.pr]; u.bi = best.i; u.anc = best.k * CW + 78 }
+      });
+      // a married-in partner whose parents are a family with no ancestors of its own is seated next to the family the couple hangs under
+      all.forEach(u => u.m.forEach((i, k) => {
+        if (!u.par || u.par.sat || i === u.bi || !p[i].parents.length) return;
+        const P = UO[p[i].parents[0]]; if (!P || P === u || P.par || P.sat || P === u.par) return;
+        P.sat = true; u.par.sa[k < u.m.indexOf(u.bi) ? "b" : "a"].push(P)
+      }));
+      const fam = (c, q) => Math.min(...p[c.bi].parents.filter(a => q.m.includes(a)).map(a => q.m.indexOf(a)));
+      const key = c => [c.par ? fam(c, c.par) : 0, bk(c.bi ?? c.m[0]), ord[c.bi ?? c.m[0]]];
+      const cmp = (a, b) => { const x = key(a), y = key(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2] };
+      const seat = c => [...c.sa.b.flatMap(seat), c, ...c.sa.a.flatMap(seat)];
+      const place = (list, top) => {
+        const acc = {}, off = [];
+        list.forEach((c, k) => {
+          let o = null;
+          for (const r in c.con) if (acc[r]) { const v = acc[r][1] + (top || c.sat || +r !== c.row ? 84 : 44) - c.con[r][0]; if (o == null || v > o) o = v }
+          if (k) o = o == null ? off[k - 1] + list[k - 1].vw + 44 : Math.max(o, off[k - 1] + 1); else o = 0;
+          off.push(o);
+          for (const r in c.con) { const a = [c.con[r][0] + o, c.con[r][1] + o]; acc[r] = acc[r] ? [Math.min(acc[r][0], a[0]), Math.max(acc[r][1], a[1])] : a }
+        });
+        return { off, acc }
+      };
+      all.forEach(u => { if (u.par) u.par.kids.push(u) });
+      const lay = u => {
+        u.kl = u.kids.sort(cmp).flatMap(seat); u.kl.forEach(lay);
+        const { off, acc } = place(u.kl, false), real = u.kl.map((c, k) => [c, k]).filter(z => !z[0].sat);
+        let pl = 0;
+        if (real.length) { const a = real.map(([c, k]) => off[k] + c.anc); pl = (Math.min(...a) + Math.max(...a)) / 2 - u.vw / 2 }
+        u.koff = off.map(o => o - pl); u.con = {};
+        for (const r in acc) u.con[r] = [acc[r][0] - pl, acc[r][1] - pl];
+        u.con[u.row] = u.con[u.row] ? [Math.min(0, u.con[u.row][0]), Math.max(u.vw, u.con[u.row][1])] : [0, u.vw]
+      };
+      const roots = all.filter(u => !u.par && !u.sat).sort((a, b) => bk(a.m[0]) - bk(b.m[0]) || ord[a.m[0]] - ord[b.m[0]]), rl = roots.flatMap(seat);
+      rl.forEach(lay);
+      const asg = (u, left) => { u.m.forEach((i, k) => X[i] = left + k * CW); u.kl.forEach((c, k) => asg(c, left + u.koff[k])) };
+      const top = place(rl, true); rl.forEach((u, k) => asg(u, top.off[k]));
       const dx = 24 - Math.min(...ids.map(i => X[i])), pos = {}; ids.forEach(i => pos[i] = { x: X[i] + dx, y: g[i] * RH + 30 });
       return { pos, w: Math.max(...ids.map(i => pos[i].x)) + 156 + 24, h: U.length * RH + 40 };
     }
