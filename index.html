@@ -637,6 +637,11 @@
       color: #2b2a33
     }
 
+    .cb{position:absolute;right:26px;bottom:3px;font-size:14px;line-height:1;padding:1px 5px;background:var(--butter);color:#2b2a33;border:2px solid var(--ink);border-radius:9px;cursor:pointer}
+    .n.hb small{box-sizing:border-box;padding-right:62px}
+    .n.est{border-style:dashed}
+    .yg{position:absolute;left:0;width:100%;height:0;border-top:1px dashed color-mix(in srgb,var(--ink) 18%,transparent);pointer-events:none}
+    .yg span{position:absolute;left:3px;top:-15px;font-size:13px;color:var(--muted)}
     .n.pic {
       padding-right: 50px
     }
@@ -685,6 +690,7 @@
     <button data-a="undo" title="Undo">↶</button><button data-a="redo" title="Redo">↷</button><select id="vw"
       title="View">
       <option value="">Tree</option>
+      <option value="g">Timeline tree</option>
       <option value="t">Life spans</option>
       <option value="e">Events</option>
     </select>
@@ -739,6 +745,17 @@
     const kids = id => Object.keys(P()).filter(i => P()[i].parents.includes(id));
     const sibs = id => Object.keys(P()).filter(i => i !== id && P()[i].parents.some(q => P()[id].parents.includes(q)));
 
+    // fold: a married-in partner whose own parents' family is a dead end (no ancestors, nobody else attached) can be tucked away behind a "▸ n" badge
+    function folds() {
+      const p = P(), m = new Map();
+      for (const x in p) {
+        if (!p[x].parents.length || !p[x].spouses.some(s => p[s].parents.some(q => p[q].parents.length))) continue;
+        const C = new Set(p[x].parents); p[x].parents.forEach(a => { p[a].spouses.forEach(s => C.add(s)); kids(a).forEach(c => c !== x && C.add(c)) });
+        if (C.has(x) || p[x].spouses.some(s => C.has(s))) continue;
+        if ([...C].every(c => p[c].parents.every(q => C.has(q)) && p[c].spouses.every(q => C.has(q)) && kids(c).every(k => C.has(k) || k === x))) m.set(x, C)
+      }
+      return m
+    }
     function clean() { // keep relations valid and spouses symmetric
       const p = P(), ok = i => p[i];
       for (const i in p) {
@@ -760,7 +777,8 @@
         if (pa.length) p[b].parents = [...new Set([...pb, ...pa])]; else if (pb.length) p[a].parents = [...pb];
         else { const id = uid(); p[id] = { ...blank(id), first: "(unknown parent)" }; p[a].parents = [id]; p[b].parents = [id] }
       }
-      else { p[a].spouses.push(b); p[b].spouses.push(a) } clean()
+      else { p[a].spouses.push(b); p[b].spouses.push(a) } clean();
+      if (k === "parents" || k === "siblings") S.exp[a] = 1; if (k === "children" || k === "siblings") S.exp[b] = 1
     }
     function unlink(k, a, b) {
       const p = P(), d = (arr, v) => arr.splice(0, arr.length, ...arr.filter(x => x !== v));
@@ -771,6 +789,8 @@
       const ids = Object.keys(p), o = [], lanes = {}, LP = [], RT = {}, CHN = [], FB = [], FV = [], UN = {}, cen = i => pos[i].x + 78, bot = i => pos[i].y + CH,
         mk = { married: "♥", partner: "♡", engaged: "◇", separated: "sep.", divorced: "div.", widowed: "wid." };
       const adj = (a, b) => pos[a].y === pos[b].y && Math.abs(pos[a].x - pos[b].x) === CW;
+      // each line leaving a card's bottom edge gets its own x (centre, +8, -8, +16 ...) so lines never run on top of each other
+      const PRT = {}, port = i => { const k = PRT[i] = (PRT[i] || 0) + 1, n = k - 1; return cen(i) + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 8 };
       // 1. one union point per couple: a dot sits between the two partners, and every child of that couple drops from it
       ids.forEach(i => p[i].spouses.forEach(s => {
         if (s <= i) return; const t = p[i].ms[s] || "married", key = i + "|" + s;
@@ -783,58 +803,60 @@
           // partners not side by side: a U under the row; each loop from the same card gets its own depth so none overlap
           const b0 = Math.max(bot(i), bot(s)), lo = Math.min(cen(i), cen(s)), hi = Math.max(cen(i), cen(s)); let k = 0;
           while (LP.some(z => z.k === k && z.b0 === b0 && z.lo < hi && z.hi > lo)) k++; LP.push({ k, b0, lo, hi });
-          const y = b0 + 14 + Math.min(k, 2) * 12;
+          const y = b0 + 14 + Math.min(k, 2) * 12, pi = port(i), ps = port(s);
           // put the dot where no other vertical line in this row is (card centres, gap centres, other loop dots)
           const oc = ids.filter(q => pos[q].y === pos[i].y).flatMap(q => [cen(q), cen(q) + CW / 2, cen(q) - CW / 2]).concat(LP.filter(z => z.b0 === b0 && z.x != null).map(z => z.x));
           let x = (lo + hi) / 2, bs = -1e9;
           for (let c = lo + 24; c <= hi - 24; c += 8) { const sc = Math.min(...oc.map(v => Math.abs(v - c))) - Math.abs(c - (lo + hi) / 2) * .1; if (sc > bs) { bs = sc; x = c } }
-          LP[LP.length - 1].x = x;
-          o.push(`<path class="sp ${t}" d="M${cen(i)} ${bot(i)}V${y}H${cen(s)}V${bot(s)}"/><text class="st" x="${x}" y="${y - 5}" text-anchor="middle">${mk[t] || t}</text>`);
+          LP[LP.length - 1].x = x; FB.push({ y, lo: Math.min(pi, ps), hi: Math.max(pi, ps), f: "L" + key });
+          o.push(`<path class="sp ${t}" d="M${pi} ${bot(i)}V${y}H${ps}V${bot(s)}"/><text class="st" x="${x}" y="${y - 5}" text-anchor="middle">${mk[t] || t}</text>`);
           UN[key] = { x, y }
         }
         o.push(`<circle class="ud" cx="${UN[key].x}" cy="${UN[key].y}" r="4"/>`)
       }));
       // 2. one family = one bus from its union dot (or from a single parent), one drop per child; step-parents are not part of the bus
-      const hv = (x, y1, y2, f) => { let d = `M${x} ${y1}`, e = -1e9; FB.filter(b => b.f !== f && b.y > y1 + 8 && b.y < y2 - 8 && x > b.lo + 4 && x < b.hi - 4).sort((a, b) => a.y - b.y).forEach(b => { if (b.y - 4 > e) { d += `V${b.y - 4}a4 4 0 0 1 0 8`; e = b.y + 4 } }); return d + `V${y2}` };
+      const hv = (x, y1, y2, f) => { let d = `M${x} ${y1}`, e = -1e9; FB.filter(b => b.f !== f && b.y > y1 + 5 && b.y < y2 - 5 && x > b.lo + 4 && x < b.hi - 4).sort((a, b) => a.y - b.y).forEach(b => { if (b.y - 4 > e) { d += `V${b.y - 4}a4 4 0 0 1 0 8`; e = b.y + 4 } }); return d + `V${y2}` };
       const fam = {}; ids.forEach(i => { const ps = [...p[i].parents].sort(); if (ps.length) (fam[ps.join("|")] ??= { ps, ch: [] }).ch.push(i) });
       Object.values(fam).sort((a, b) => pos[a.ch[0]].x - pos[b.ch[0]].x).forEach(f => {
-        const cy = pos[f.ch[0]].y, L = lanes[cy] ??= [], [a, b] = f.ps, sp = f.ps.length === 2 && p[a].spouses.includes(b);
-        let src = sp ? [{ ...UN[[a, b].sort().join("|")], q: a }] : f.ps.map(q => ({ x: cen(q), y: bot(q), q }));
+        const cy = Math.min(...f.ch.map(c => pos[c].y)), L = lanes[cy] ??= [], [a, b] = f.ps, sp = f.ps.length === 2 && p[a].spouses.includes(b);
+        let src = sp ? [{ ...UN[[a, b].sort().join("|")], q: a }] : f.ps.map(q => ({ x: port(q), y: bot(q), q }));
         // parents several rows above their children (e.g. a child who married into a much younger branch): leave the parent's row,
         // then run down a free channel between cards instead of straight through the rows in between
         src = src.map(s => {
           const rb = pos[s.q].y + CH; if (cy - 10 - rb < 100) return s;
           const free = x => x > 6 && !ids.some(i => pos[i].y >= rb - 1 && pos[i].y < cy - 10 && x > pos[i].x - 8 && x < pos[i].x + 164) && !CHN.some(u => Math.abs(u - x) < 8);
           let xc = s.x; for (let d = 0; d < 6000; d += 4) { const c = [s.x + d, s.x - d].find(free); if (c != null) { xc = c; break } }
-          const n = RT[rb] = (RT[rb] || 0) + 1; CHN.push(xc); return { ...s, xc, ya: Math.max(s.y + 8, rb + 8 + (n % 5) * 5) }
+          const n = RT[rb] = (RT[rb] || 0) + 1, ya = Math.max(s.y + 8, rb + 8 + (n % 5) * 5); CHN.push(xc); FB.push({ y: ya, lo: Math.min(s.x, xc), hi: Math.max(s.x, xc), f }); return { ...s, xc, ya }
         });
         const xs = [...src.map(s => s.xc ?? s.x), ...f.ch.map(c => cen(c))], lo = Math.min(...xs), hi = Math.max(...xs);
         let k = 0; while (L.some(z => z.k === k && z.lo < hi + 8 && z.hi > lo - 8)) k++; L.push({ k, lo, hi });
-        const by = cy - 38 + Math.min(k, 4) * 7;
+        const by = cy - 46 + Math.min(k, 4) * 9;
         // drawn after all families are known, so a vertical can hop over another family's bus instead of looking joined to it
         FB.push({ y: by, lo, hi, f });
         FV.push(() => `<path d="${src.map(s => s.xc != null ? hv(s.x, s.y, s.ya, f) + `M${s.x} ${s.ya}H${s.xc}` + hv(s.xc, s.ya, by, f) : hv(s.x, s.y, by, f)).join("")}M${lo} ${by}H${hi}"/>`);
         f.ch.forEach(c => FV.push(() => `<path class="pt-${p[c].pt[f.ps[0]] || "biological"}" d="${hv(cen(c), by, pos[c].y, f)}"/>`))
       });
-      FV.forEach(g => o.push(g()));
-      // 3. step-parents: a dashed line from the step-parent's card straight to each step-child, never sharing a bus
-      ids.forEach(c => (p[c].stepParents || []).forEach((s, n) => {
-        if (!pos[s] || !pos[c]) return;
-        const y = pos[c].y - 12 - n * 4;
-        o.push(`<path class="pt-step" d="M${cen(s)} ${bot(s)}V${y}H${cen(c)}V${pos[c].y}"/>`)
+      // 3. step-parents: dashed line with its own bus lane (never sharing a bus or a lane with a family)
+      ids.forEach(c => (p[c].stepParents || []).forEach(sp => {
+        if (!pos[sp] || !pos[c]) return;
+        const cy = pos[c].y, L = lanes[cy] ??= [], sx = port(sp), cx = cen(c), lo = Math.min(sx, cx), hi = Math.max(sx, cx), f = "S" + sp + c;
+        let k = 0; while (L.some(z => z.k === k && z.lo < hi + 8 && z.hi > lo - 8)) k++; L.push({ k, lo, hi });
+        const by = cy - 46 + Math.min(k, 4) * 9; FB.push({ y: by, lo, hi, f });
+        FV.push(() => `<path class="pt-step" d="${hv(sx, bot(sp), by, f)}M${sx} ${by}H${cx}${hv(cx, by, cy, f)}"/>`)
       }));
+      FV.forEach(g => o.push(g()));
       return o.join("")
     }
     function layout() {
       const p = VP(), ids = Object.keys(p), g = {}, K = {}, X = {}, GAP = 40,
         bk = i => { const m = String(p[i].born || "").match(/(\d{4})(?:-(\d\d))?(?:-(\d\d))?/); return m ? m[1] * 372 + (m[2] || 0) * 31 + (+m[3] || 0) : 1e12 };
       ids.forEach(i => { g[i] = 0; K[i] = [] }); ids.forEach(c => p[c].parents.forEach(a => K[a].push(c)));
-      // 1. generations: parents above children, spouses level, parentless people (married or not) pulled down next to their earliest child
+      // 1. generations: parents above children, spouses level, parentless people (married or not) pulled down next to their latest child, so all their children end up level
       for (let n = 0; n < ids.length * 3 + 3; n++) {
         let ch = false;
         ids.forEach(i => {
           let v = g[i]; p[i].parents.forEach(q => v = Math.max(v, g[q] + 1)); p[i].spouses.forEach(q => v = Math.max(v, g[q]));
-          if (!p[i].parents.length && K[i].length) v = Math.max(v, Math.min(...K[i].map(c => g[c])) - 1);
+          if (!p[i].parents.length && K[i].length) v = Math.max(v, Math.max(...K[i].map(c => g[c])) - 1);
           if (v !== g[i]) { g[i] = v; ch = true }
         });
         if (!ch) break
@@ -875,7 +897,12 @@
       all.forEach(u => u.m.forEach((i, k) => {
         if (!u.par || u.par.sat || i === u.bi || !p[i].parents.length) return;
         const P = UO[p[i].parents[0]]; if (!P || P === u || P.par || P.sat || P === u.par) return;
-        P.sat = true; u.par.sa[k < u.m.indexOf(u.bi) ? "b" : "a"].push(P)
+        P.sat = true;
+        // the spouse's parents hang above the spouse; their other children (and those subtrees) are seated right beside the spouse so no long line is needed.
+        // (if one of those children is an ancestor of this couple, fall back to seating the parents beside the couple's own parents)
+        const ks = all.filter(c => c.par === P), cyc = ks.some(c => { for (let a = u.par; a; a = a.par) if (a === c) return true });
+        if (!cyc) { ks.forEach(c => { c.par = null; c.sat = true; u.sa.a.push(c) }); (u.par.ov ??= []).push({ P, an: [[u, k], ...ks.map(c => [c, c.m.indexOf(c.bi)])] }) }
+        else u.par.sa[k < u.m.indexOf(u.bi) ? "b" : "a"].push(P)
       }));
       const fam = (c, q) => Math.min(...p[c.bi].parents.filter(a => q.m.includes(a)).map(a => q.m.indexOf(a)));
       const key = c => [c.par ? fam(c, c.par) : 0, bk(c.bi ?? c.m[0]), ord[c.bi ?? c.m[0]]];
@@ -900,30 +927,68 @@
         if (real.length) { const a = real.map(([c, k]) => off[k] + c.anc); pl = (Math.min(...a) + Math.max(...a)) / 2 - u.vw / 2 }
         u.koff = off.map(o => o - pl); u.con = {};
         for (const r in acc) u.con[r] = [acc[r][0] - pl, acc[r][1] - pl];
-        u.con[u.row] = u.con[u.row] ? [Math.min(0, u.con[u.row][0]), Math.max(u.vw, u.con[u.row][1])] : [0, u.vw]
+        u.con[u.row] = u.con[u.row] ? [Math.min(0, u.con[u.row][0]), Math.max(u.vw, u.con[u.row][1])] : [0, u.vw];
+        // dead-end parents of a married-in partner: centred right above that partner, nudged sideways only if they would hit another card in the row
+        const iv = [[0, u.vw]]; (u.ov || []).forEach(o => { const xs = o.an.map(([c, m]) => u.koff[u.kl.indexOf(c)] + m * CW + 78); o.x = (Math.min(...xs) + Math.max(...xs)) / 2 - o.P.vw / 2 });
+        (u.ov || []).sort((a, b) => a.x - b.x).forEach(o => {
+          const w = o.P.vw; let x = o.x;
+          for (let t = 0; t < 9; t++) { const h = iv.find(([a, b]) => x < b + 44 && x + w > a - 44); if (!h) break; const L = h[0] - 44 - w, R = h[1] + 44; x = Math.abs(L - x) < Math.abs(R - x) ? L : R }
+          o.x = x; iv.push([x, x + w]); o.P.kl = []; o.P.koff = []; u.con[u.row] = [Math.min(u.con[u.row][0], x), Math.max(u.con[u.row][1], x + w)]
+        })
       };
       const roots = all.filter(u => !u.par && !u.sat).sort((a, b) => bk(a.m[0]) - bk(b.m[0]) || ord[a.m[0]] - ord[b.m[0]]), rl = roots.flatMap(seat);
       rl.forEach(lay);
-      const asg = (u, left) => { u.m.forEach((i, k) => X[i] = left + k * CW); u.kl.forEach((c, k) => asg(c, left + u.koff[k])) };
+      const asg = (u, left) => { u.m.forEach((i, k) => X[i] = left + k * CW); u.kl.forEach((c, k) => asg(c, left + u.koff[k])); (u.ov || []).forEach(o => asg(o.P, left + o.x)) };
       const top = place(rl, true); rl.forEach((u, k) => asg(u, top.off[k]));
       const dx = 24 - Math.min(...ids.map(i => X[i])), pos = {}; ids.forEach(i => pos[i] = { x: X[i] + dx, y: g[i] * RH + 30 });
       return { pos, w: Math.max(...ids.map(i => pos[i].x)) + 156 + 24, h: U.length * RH + 40 };
     }
 
+    // timeline tree: x comes from the normal layout, y from the (estimated) birth year. Cards are then pushed down just enough that children sit
+    // below their parents, spouses stay level and no two cards overlap. Undated people borrow a year from spouse, siblings, parents or children.
+    function tt(p, L) {
+      const ids = Object.keys(p), pos = {}, yr = {}, est = {}, y = {}, PY = 7, OX = 36, avg = a => a.reduce((s, v) => s + v, 0) / a.length;
+      ids.forEach(i => { pos[i] = { x: L.pos[i].x + OX, y: 0 }; const b = fy(p[i].born); if (b) yr[i] = b });
+      const sb = i => ids.filter(q => q !== i && p[q].parents.some(a => p[i].parents.includes(a)));
+      for (let n = 0; n < ids.length; n++) {
+        let ch = 0;
+        ids.forEach(i => {
+          if (yr[i] != null) return;
+          const g = a => a.map(q => yr[q]).filter(v => v != null), sp = g(p[i].spouses), s2 = g(sb(i)), pa = g(p[i].parents), cd = g(ids.filter(c => p[c].parents.includes(i)));
+          const v = sp.length ? avg(sp) : s2.length ? avg(s2) : pa.length && cd.length ? (avg(pa) + avg(cd)) / 2 : pa.length ? avg(pa) + 28 : cd.length ? avg(cd) - 28 : null;
+          if (v != null) { yr[i] = est[i] = v; ch = 1 }
+        });
+        if (!ch) break
+      }
+      const vs = Object.values(yr), lo = vs.length ? Math.floor(Math.min(...vs) / 10) * 10 : 0, hi = vs.length ? Math.max(...vs) : 0, Y = t => (t - lo) * PY + 30;
+      ids.forEach(i => y[i] = yr[i] != null ? Y(yr[i]) : 30);
+      for (let n = 0; n < 300; n++) {
+        let ch = 0; const up = (i, v) => { if (v > y[i] + .5) { y[i] = v; ch = 1 } };
+        ids.forEach(i => { p[i].parents.forEach(a => up(i, y[a] + RH)); p[i].spouses.forEach(s => up(i, y[s])) });
+        for (let a = 0; a < ids.length; a++) for (let b = a + 1; b < ids.length; b++) {
+          const A = ids[a], B = ids[b];
+          if (Math.abs(pos[A].x - pos[B].x) < CW - 20 && Math.abs(y[A] - y[B]) < CH + 24) { const lowB = y[B] >= y[A]; up(lowB ? B : A, y[lowB ? A : B] + CH + 24) }
+        }
+        if (!ch) break
+      }
+      ids.forEach(i => pos[i].y = Math.round(y[i]));
+      let ticks = ""; for (let t = Math.ceil(lo / 10) * 10; t <= hi + 10; t += 10) ticks += `<div class="yg" style="top:${Y(t)}px"><span>${t}</span></div>`;
+      return { pos, w: L.w + OX, h: Math.max(...ids.map(i => pos[i].y)) + CH + 40, est, ticks }
+    }
     function render() {
       bg(); snap(); $("#em").hidden = !!Object.keys(P()).length;
       try { localStorage.setItem(K, JSON.stringify(S)) } catch (e) { }
       const p = VP(), ids = Object.keys(p), cv = $("#cv");
       if (!ids.length) { cv.innerHTML = ""; return }
-      if (VM) { const T = (VM === "e" ? ev : tl)(p, ids); POS = T.pos; DIM = { w: T.w, h: T.h }; cv.style.width = T.w + "px"; cv.style.height = T.h + "px"; cv.innerHTML = T.html; return }
-      const { pos, w, h } = layout(); POS = pos; DIM = { w, h }; const ln = edges(p, pos);
+      if (VM === "t" || VM === "e") { const T = (VM === "e" ? ev : tl)(p, ids); POS = T.pos; DIM = { w: T.w, h: T.h }; cv.style.width = T.w + "px"; cv.style.height = T.h + "px"; cv.innerHTML = T.html; return }
+      const L = layout(), TT = VM === "g" ? tt(p, L) : null, { pos, w, h } = TT || L; POS = pos; DIM = { w, h }; const ln = edges(p, pos), FD = folds();
 
       const life = x => { const a = age(x); return (x.born && x.died ? `${sh(x.born)}–${sh(x.died)}` : x.born ? "b. " + sh(x.born) : x.died ? "d. " + sh(x.died) : x.dec ? "deceased" : "") + (a !== "" ? ` · ${a}` : "") };
       cv.style.width = w + "px"; cv.style.height = h + "px";
-      cv.innerHTML = `<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop);stroke-width:3.5}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5;stroke-width:1.5}.sp.widowed{stroke:var(--muted);stroke-width:1.5}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.ud{fill:var(--card);stroke:var(--ink);stroke-width:2}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>` +
+      cv.innerHTML = `${TT ? TT.ticks : ""}<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop);stroke-width:3.5}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5;stroke-width:1.5}.sp.widowed{stroke:var(--muted);stroke-width:1.5}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.ud{fill:var(--card);stroke:var(--ink);stroke-width:2}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>` +
         ids.map(i => {
           const x = p[i], c = pos[i], r = ([...i].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 5 - 2) * .6;
-          return `<div class="n${i === sel ? " sel" : ""}${x.photo ? " pic" : ""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color ? `background:${esc(x.color)};border-color:${bdr(x.color)};box-shadow:3px 3px 0 ${bdr(x.color)};color:#2b2a33` : ""}">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : ""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x))}</small><span class="lk" data-lk="${i}" title="Drag onto another card to link">⊕</span></div>`
+          return `<div class="n${i === sel ? " sel" : ""}${x.photo ? " pic" : ""}${FD.has(i) ? " hb" : ""}${TT && TT.est[i] != null ? " est" : ""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color ? `background:${esc(x.color)};border-color:${bdr(x.color)};box-shadow:3px 3px 0 ${bdr(x.color)};color:#2b2a33` : ""}">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : ""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x) || (TT && TT.est[i] != null ? "est. ~" + Math.round(TT.est[i]) : ""))}</small>${FD.has(i) ? `<span class="cb" data-cb="${i}" title="${S.exp[i] ? "Hide" : "Show"} ${FD.get(i).size} relative(s) on this side">${S.exp[i] ? "▾" : "▸ " + FD.get(i).size}</span>` : ""}<span class="lk" data-lk="${i}" title="Drag onto another card to link">⊕</span></div>`
         }).join("");
     }
 
@@ -953,7 +1018,7 @@
     }
 
     function refocus() { FS = FM && P()[sel] ? (FM === "hg" ? new Set([...branch(sel, "up"), ...branch(sel, "down")]) : branch(sel, FM)) : null }
-    function pick(i) { sel = i; refocus(); render(); panel(); if (FM) fit() }
+    function pick(i) { sel = i; folds().forEach((C, x) => { if (C.has(i)) S.exp[x] = 1 }); refocus(); render(); panel(); if (FM) fit() }
     function add(rel) {
       const id = uid(); P()[id] = blank(id);
       if (rel) link(rel.k, rel.of, id);
@@ -998,6 +1063,7 @@
       const sw = t.closest("[data-col]"); if (sw) { P()[sel].color = sw.dataset.col; render(); panel(); return }
       const go = t.closest("[data-go]"); if (go) return pick(go.dataset.go);
       const nw = t.closest("[data-new]"); if (nw) return add({ k: nw.dataset.new, of: sel });
+      const cb = t.closest("[data-cb]"); if (cb) { const x = cb.dataset.cb; S.exp[x] = !S.exp[x]; if (!S.exp[x] && sel && folds().get(x)?.has(sel)) sel = null; refocus(); render(); panel(); return }
       const n = t.closest(".n,.tb,.ev"); if (n) return pick(n.dataset.id);
       const a = t.closest("[data-a]")?.dataset.a;
       if (a === "add") add();
@@ -1035,7 +1101,7 @@
     });
     $("#fi").addEventListener("change", e => { const r = new FileReader(); r.onload = () => { $("#ta").value = r.result }; if (e.target.files[0]) r.readAsText(e.target.files[0]) });
     const stg = $("#stage"), cvs = $("#cv"), q = $("#q"), sr = $("#sr");
-    S.bg ??= { pat: "dots", c: "" }; $("#pat").value = S.bg.pat;
+    S.bg ??= { pat: "dots", c: "" }; S.exp ??= {}; $("#pat").value = S.bg.pat;
     function view() { cvs.style.transform = `translate(${V.x}px,${V.y}px) scale(${V.k})`; bg() }
     function bg() {
       const b = S.bg || {}, c = b.p || "color-mix(in srgb,var(--ink) 22%,transparent)", s = 24 * V.k;
@@ -1064,7 +1130,11 @@
       sr.innerHTML = t ? Object.keys(P()).filter(i => (lab(i) + " " + P()[i].other + " " + P()[i].bio).toLowerCase().includes(t)).slice(0, 12).map(i => `<div data-hit="${i}">${esc(lab(i))}</div>`).join("") || "<div>No match</div>" : ""
     });
     $("#pat").onchange = e => { S.bg.pat = e.target.value; render() }; $("#bgc").oninput = e => { S.bg.c = e.target.value; render() }; $("#pc").oninput = e => { S.bg.p = e.target.value; render() };
-    const VP = () => { const p = P(); if (!FS) return p; const o = {}; FS.forEach(i => { if (p[i]) o[i] = { ...p[i], parents: p[i].parents.filter(q => FS.has(q)), stepParents: (p[i].stepParents || []).filter(q => FS.has(q)), spouses: p[i].spouses.filter(q => FS.has(q)) } }); return o };
+    const VP = () => {
+      const p = P(), h = new Set(); if (VM !== "t" && VM !== "e") folds().forEach((C, x) => { if (!S.exp[x]) C.forEach(i => h.add(i)) });
+      if (!FS && !h.size) return p; const o = {}, ok = i => p[i] && !h.has(i) && (!FS || FS.has(i));
+      Object.keys(p).forEach(i => { if (ok(i)) o[i] = { ...p[i], parents: p[i].parents.filter(ok), stepParents: (p[i].stepParents || []).filter(ok), spouses: p[i].spouses.filter(ok) } }); return o
+    };
     // dates are stored as YYYY, YYYY-MM or YYYY-MM-DD; a leading "~" marks an approximate (circa) date
     function nd(s) {
       s = String(s || "").trim(); let c = false; const cm = s.match(/^(circa|abt\.?|about|ca\.?|c\.?|~)\s*/i);
