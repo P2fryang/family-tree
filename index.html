@@ -643,6 +643,12 @@
     .yg{position:absolute;left:0;width:100%;height:0;border-top:1px dashed color-mix(in srgb,var(--ink) 18%,transparent);pointer-events:none}
     .yg span{position:absolute;left:3px;top:-15px;font-size:13px;color:var(--muted)}
     .n { overflow: visible; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none }
+    /* overview: below ~30% zoom cards become plain blocks, lines keep a constant width, only the selected/hovered card shows its name */
+    #cv.ov .n > :not(b), #cv.ov .n img, #cv.ov .pl, #cv.ov .lk, #cv.ov .st, #cv.ov .ud { display: none }
+    #cv.ov .n { box-shadow: none; border-width: calc(2px / var(--z)); background: var(--sage) }
+    #cv.ov .n b { display: none }
+    #cv.ov .n:hover b, #cv.ov .n.sel b { display: block; position: absolute; left: 0; bottom: 100%; z-index: 9; max-width: none; overflow: visible; padding: 2px 8px; background: var(--card); border: 2px solid var(--ink); border-radius: 8px; transform-origin: 0 100%; transform: scale(calc(1 / var(--z))) }
+    #cv.ov svg * { vector-effect: non-scaling-stroke }
     .n.src { outline: 3px dashed var(--pop); outline-offset: 3px }
     .n.tgt { outline: 3px solid var(--pop); outline-offset: 3px; transform: rotate(calc(var(--r)*1deg)) scale(1.06) }
     @media (pointer: coarse) { .lk { display: none } #lm button { padding: 8px 16px } }
@@ -1133,16 +1139,16 @@
     $("#fi").addEventListener("change", e => { const r = new FileReader(); r.onload = () => { $("#ta").value = r.result }; if (e.target.files[0]) r.readAsText(e.target.files[0]) });
     const stg = $("#stage"), cvs = $("#cv"), q = $("#q"), sr = $("#sr");
     S.bg ??= { pat: "dots", c: "" }; S.exp ??= {}; S.cu ??= {}; S.cd ??= {}; $("#pat").value = S.bg.pat;
-    function view() { cvs.style.transform = `translate(${V.x}px,${V.y}px) scale(${V.k})`; bg() }
+    function view() { cvs.style.transform = `translate(${V.x}px,${V.y}px) scale(${V.k})`; cvs.style.setProperty("--z", V.k); cvs.classList.toggle("ov", V.k < .3); bg() }
     function bg() {
       const b = S.bg || {}, c = b.p || "color-mix(in srgb,var(--ink) 22%,transparent)", s = 24 * V.k;
       stg.style.backgroundColor = b.c || "";
       stg.style.backgroundImage = { dots: `radial-gradient(circle,${c} ${1.6 * V.k}px,transparent ${1.7 * V.k}px)`, grid: `linear-gradient(${c} 1px,transparent 1px),linear-gradient(90deg,${c} 1px,transparent 1px)`, lines: `linear-gradient(${c} 1px,transparent 1px)`, none: "none" }[b.pat || "dots"];
       stg.style.backgroundSize = `${s}px ${s}px`; stg.style.backgroundPosition = `${V.x}px ${V.y}px`
     }
-    function zoom(f, cx, cy) { const k = Math.min(3, Math.max(.2, V.k * f)); f = k / V.k; V.x = cx - (cx - V.x) * f; V.y = cy - (cy - V.y) * f; V.k = k; view() }
+    function zoom(f, cx, cy) { const k = Math.min(3, Math.max(.04, V.k * f)); f = k / V.k; V.x = cx - (cx - V.x) * f; V.y = cy - (cy - V.y) * f; V.k = k; view() }
     const mid = () => [stg.clientWidth / 2, stg.clientHeight / 2];
-    function fit() { if (!Object.keys(VP()).length) return; const { w, h } = DIM, k = Math.min(1.2, stg.clientWidth / w, stg.clientHeight / h); V = { k, x: (stg.clientWidth - w * k) / 2, y: 20 }; view() }
+    function fit() { if (!Object.keys(VP()).length) return; const { w, h } = DIM, k = Math.max(.04, Math.min(1.2, stg.clientWidth / w, stg.clientHeight / h)); V = { k, x: (stg.clientWidth - w * k) / 2, y: 20 }; view() }
     function center(i) { const c = POS[i]; if (!c) return; V.k = Math.max(V.k, .9); V.x = stg.clientWidth / 2 - (c.x + 78) * V.k; V.y = stg.clientHeight / 2 - (c.y + 41) * V.k; view() }
     const ptr = new Map(); let moved = 0;
     stg.addEventListener("wheel", e => { e.preventDefault(); const r = stg.getBoundingClientRect(); zoom(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top) }, { passive: false });
