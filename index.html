@@ -642,6 +642,31 @@
     .n.est{border-style:dashed}
     .yg{position:absolute;left:0;width:100%;height:0;border-top:1px dashed color-mix(in srgb,var(--ink) 18%,transparent);pointer-events:none}
     .yg span{position:absolute;left:3px;top:-15px;font-size:13px;color:var(--muted)}
+    .n { overflow: visible }
+
+    .pl {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      font-size: 14px;
+      line-height: 1;
+      padding: 2px 8px;
+      white-space: nowrap;
+      cursor: pointer;
+      opacity: .5;
+      color: #2b2a33;
+      background: var(--butter);
+      border: 2px solid var(--ink);
+      border-radius: 11px;
+      box-shadow: 1px 1px 0 var(--ink)
+    }
+
+    .pl.up { top: -13px }
+    .pl.dn { bottom: -13px }
+    .pl.on { background: var(--pop); opacity: 1 }
+    .n:hover .pl, .n.sel .pl, .pl:hover { opacity: 1 }
+
     .n.pic {
       padding-right: 50px
     }
@@ -696,7 +721,7 @@
     </select>
     <details id="set">
       <summary title="Settings">⚙</summary>
-      <div class="menu"><button data-a="expall">Export all</button><button data-a="imp">Import /
+      <div class="menu"><button data-a="expall">Export all</button><button data-a="expcol">Expand all</button><button data-a="imp">Import /
           sync</button><label>Paper <select id="pat">
             <option value="dots">dots</option>
             <option value="grid">grid</option>
@@ -711,14 +736,7 @@
     <div class="hint" id="em" hidden>A blank page ✎<br>add your first person</div><svg id="rb" style="display:none">
       <line stroke="var(--pop)" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round" />
     </svg>
-    <div class="zm"><button data-a="zi">＋</button><button data-a="zo">－</button><button data-a="fit">Fit</button><select
-        id="fm" title="Focus on the selected person">
-        <option value="">Focus: off</option>
-        <option value="up">ancestors</option>
-        <option value="down">descendants</option>
-        <option value="hg">both</option>
-        <option value="all">family</option>
-      </select></div>
+    <div class="zm"><button data-a="zi">＋</button><button data-a="zo">－</button><button data-a="fit">Fit</button></div>
   </div>
   <aside id="pn" hidden></aside>
   <div id="lm" hidden></div>
@@ -731,7 +749,7 @@
   </dialog>
   <script>
     const K = "famtree.v1", CW = 200, RH = 160, CH = 82;
-    let S = { people: {} }, sel = null, V = { x: 20, y: 20, k: 1 }, FS = null, FM = "", VM = "", DIM = { w: 1, h: 1 }, POS = {}, sg = null, LK = null, H = [], R = [], last = "", lt = 0;
+    let S = { people: {} }, sel = null, V = { x: 20, y: 20, k: 1 }, VM = "", DIM = { w: 1, h: 1 }, POS = {}, sg = null, LK = null, H = [], R = [], last = "", lt = 0;
     const PAL = { "#f9cfd2": "#c76b78", "#fbe0c4": "#c9824a", "#fbe9a8": "#b8962e", "#d6e8d0": "#6f9a62", "#c9ece3": "#4f9d8c", "#cfe3f3": "#5b8fbf", "#ddd3f0": "#8a72b8" },
       bdr = c => PAL[c] || "#" + [1, 3, 5].map(i => Math.round(parseInt(c.slice(i, i + 2), 16) * .55).toString(16).padStart(2, "0")).join(""); const PT = ["biological", "adopted", "step", "foster"], GN = ["female", "male", "nonbinary", "genderqueer", "genderfluid", "agender", "trans woman", "trans man", "intersex", "two-spirit", "other", "unknown"]; const MS = ["married", "partner", "engaged", "separated", "divorced", "widowed"];
     try { S = JSON.parse(localStorage.getItem(K)) || S } catch (e) { }
@@ -988,7 +1006,7 @@
       cv.innerHTML = `${TT ? TT.ticks : ""}<svg width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><style>.sp{stroke:var(--pop);stroke-width:3.5}.sp.partner,.sp.engaged{stroke-dasharray:5 5}.sp.separated,.sp.divorced{stroke:var(--muted);stroke-dasharray:2 5;stroke-width:1.5}.sp.widowed{stroke:var(--muted);stroke-width:1.5}.st{fill:currentColor;stroke:none;font:14px 'Patrick Hand',cursive}.ud{fill:var(--card);stroke:var(--ink);stroke-width:2}.pt-adopted{stroke-dasharray:6 4}.pt-step,.pt-foster{stroke-dasharray:2 5}</style>${ln}</svg>` +
         ids.map(i => {
           const x = p[i], c = pos[i], r = ([...i].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 5 - 2) * .6;
-          return `<div class="n${i === sel ? " sel" : ""}${x.photo ? " pic" : ""}${FD.has(i) ? " hb" : ""}${TT && TT.est[i] != null ? " est" : ""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color ? `background:${esc(x.color)};border-color:${bdr(x.color)};box-shadow:3px 3px 0 ${bdr(x.color)};color:#2b2a33` : ""}">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : ""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x) || (TT && TT.est[i] != null ? "est. ~" + Math.round(TT.est[i]) : ""))}</small>${FD.has(i) ? `<span class="cb" data-cb="${i}" title="${S.exp[i] ? "Hide" : "Show"} ${FD.get(i).size} relative(s) on this side">${S.exp[i] ? "▾" : "▸ " + FD.get(i).size}</span>` : ""}<span class="lk" data-lk="${i}" title="Drag onto another card to link">⊕</span></div>`
+          return `<div class="n${i === sel ? " sel" : ""}${x.photo ? " pic" : ""}${TT && TT.est[i] != null ? " est" : ""}" data-id="${i}" style="left:${c.x}px;top:${c.y}px;--r:${r};${x.color ? `background:${esc(x.color)};border-color:${bdr(x.color)};box-shadow:3px 3px 0 ${bdr(x.color)};color:#2b2a33` : ""}">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : ""}<b>${esc(nm(i))}</b><i>${esc(x.other)}&nbsp;</i><small>${esc(life(x) || (TT && TT.est[i] != null ? "est. ~" + Math.round(TT.est[i]) : ""))}</small>${FD.has(i) ? pill("up", S.exp[i] ? null : FD.get(i).size, `data-cb="${i}"`, `${S.exp[i] ? "Hide" : "Show"} ${FD.get(i).size} relative(s) on this side`) : UPOK.has(i) ? pill("up", S.cu[i] ? (HC.u[i] ?? 0) : null, `data-cu="${i}"`, S.cu[i] ? "Show relatives above" : "Hide relatives above") : ""}${kids(i).length ? pill("dn", S.cd[i] ? (HC.d[i] ?? 0) : null, `data-cd="${i}"`, S.cd[i] ? "Show descendants" : "Hide descendants") : ""}<span class="lk" data-lk="${i}" title="Drag onto another card to link">⊕</span></div>`
         }).join("");
     }
 
@@ -1016,9 +1034,12 @@
   <h4>Export branch</h4><div class="row"><select id="scope"><option value="down">this person + descendants</option><option value="up">this person + ancestors</option><option value="all">whole connected family</option></select><button data-a="expbr">Export</button></div>
   <div class="bar"><button data-a="del">Delete person</button></div></div>`;
     }
-
-    function refocus() { FS = FM && P()[sel] ? (FM === "hg" ? new Set([...branch(sel, "up"), ...branch(sel, "down")]) : branch(sel, FM)) : null }
-    function pick(i) { sel = i; folds().forEach((C, x) => { if (C.has(i)) S.exp[x] = 1 }); refocus(); render(); panel(); if (FM) fit() }
+    function reveal(i) { // un-collapse just enough to make person i visible
+      if (!hid().has(i)) return;
+      for (const m of [S.cu, S.cd]) for (const c of Object.keys(m)) { const v = m[c]; delete m[c]; if (!hid().has(i)) return; m[c] = v }
+      S.cu = {}; S.cd = {}
+    }
+    function pick(i) { reveal(i); sel = i; folds().forEach((C, x) => { if (C.has(i)) S.exp[x] = 1 }); render(); panel() }
     function add(rel) {
       const id = uid(); P()[id] = blank(id);
       if (rel) link(rel.k, rel.of, id);
@@ -1058,12 +1079,18 @@
     document.addEventListener("click", e => {
       const t = e.target, un = t.closest("[data-un]");
       if (un) { const [k, i] = un.dataset.un.split(":"); unlink(k, sel, i); render(); panel(); return }
-      const ht = t.closest("[data-hit]"); if (ht) { FM = ""; $("#fm").value = ""; FS = null; sr.innerHTML = ""; q.value = ""; pick(ht.dataset.hit); return center(ht.dataset.hit) }
+      const ht = t.closest("[data-hit]"); if (ht) { sr.innerHTML = ""; q.value = ""; pick(ht.dataset.hit); return center(ht.dataset.hit) }
       const lmb = t.closest("[data-lm]"); if (lmb) { const [k, a, b] = lmb.dataset.lm.split(":"); link(k, a, b); $("#lm").hidden = true; render(); if (sel) panel(); return }
       const sw = t.closest("[data-col]"); if (sw) { P()[sel].color = sw.dataset.col; render(); panel(); return }
       const go = t.closest("[data-go]"); if (go) return pick(go.dataset.go);
       const nw = t.closest("[data-new]"); if (nw) return add({ k: nw.dataset.new, of: sel });
-      const cb = t.closest("[data-cb]"); if (cb) { const x = cb.dataset.cb; S.exp[x] = !S.exp[x]; if (!S.exp[x] && sel && folds().get(x)?.has(sel)) sel = null; refocus(); render(); panel(); return }
+      const cb = t.closest("[data-cb]"); if (cb) { const x = cb.dataset.cb; S.exp[x] = !S.exp[x]; if (!S.exp[x] && sel && folds().get(x)?.has(sel)) sel = null; render(); panel(); return }
+      const cc = t.closest("[data-cu],[data-cd]");
+      if (cc) { // keep the clicked card where it is on screen while the tree reshuffles around it
+        const up = "cu" in cc.dataset, i = cc.dataset.cu || cc.dataset.cd, m = up ? S.cu : S.cd, o = POS[i];
+        if (m[i]) delete m[i]; else m[i] = 1; if (sel && hid().has(sel)) sel = null;
+        render(); panel(); const n = POS[i]; if (o && n) { V.x += (o.x - n.x) * V.k; V.y += (o.y - n.y) * V.k; view() } return
+      }
       const n = t.closest(".n,.tb,.ev"); if (n) return pick(n.dataset.id);
       const a = t.closest("[data-a]")?.dataset.a;
       if (a === "add") add();
@@ -1077,6 +1104,7 @@
       else if (a === "bgr") { S.bg.c = S.bg.p = ""; render() }
       else if (a === "close") { sel = null; render(); panel() }
       else if (a === "del" && confirm("Delete " + nm(sel) + "?")) { delete P()[sel]; sel = null; clean(); render(); panel() }
+      else if (a === "expcol") { S.cu = {}; S.cd = {}; folds().forEach((C, x) => S.exp[x] = 1); render(); panel() }
       else if (a === "expall") openIO("Export: whole tree", dump());
       else if (a === "expbr") openIO("Export: branch of " + nm(sel), dump(branch(sel, $("#scope").value)));
       else if (a === "imp") openIO("Import: paste JSON or choose a file", "");
@@ -1097,11 +1125,11 @@
     document.addEventListener("change", e => {
       const d = e.target.dataset;
       if ("ci" in d) { const w = e.target.closest("label.ci").previousElementSibling, k = w.dataset.dk, v = (P()[sel][k] || "").replace(/^~/, ""); P()[sel][k] = (e.target.checked && v ? "~" : "") + v; render(); return }
-      if (d.pt) { P()[sel].pt[d.pt] = e.target.value; render(); return } if (d.c) { P()[sel][d.c] = e.target.checked; render(); return } if (e.target.id === "vw") { VM = e.target.value; render(); fit(); return } if (e.target.id === "fm") { FM = e.target.value; refocus(); render(); fit(); return } if (e.target.id === "rw") { $("#rr").textContent = e.target.value ? how(sel, e.target.value) : ""; return } if ("photo" in d) { pic(e.target.files[0]); return } const m = e.target.dataset.ms; if (m) { P()[sel].ms[m] = P()[m].ms[sel] = e.target.value; render(); return } const k = e.target.dataset.link; if (k && e.target.value) { link(k, sel, e.target.value); render(); panel() }
+      if (d.pt) { P()[sel].pt[d.pt] = e.target.value; render(); return } if (d.c) { P()[sel][d.c] = e.target.checked; render(); return } if (e.target.id === "vw") { VM = e.target.value; render(); fit(); return } if (e.target.id === "rw") { $("#rr").textContent = e.target.value ? how(sel, e.target.value) : ""; return } if ("photo" in d) { pic(e.target.files[0]); return } const m = e.target.dataset.ms; if (m) { P()[sel].ms[m] = P()[m].ms[sel] = e.target.value; render(); return } const k = e.target.dataset.link; if (k && e.target.value) { link(k, sel, e.target.value); render(); panel() }
     });
     $("#fi").addEventListener("change", e => { const r = new FileReader(); r.onload = () => { $("#ta").value = r.result }; if (e.target.files[0]) r.readAsText(e.target.files[0]) });
     const stg = $("#stage"), cvs = $("#cv"), q = $("#q"), sr = $("#sr");
-    S.bg ??= { pat: "dots", c: "" }; S.exp ??= {}; $("#pat").value = S.bg.pat;
+    S.bg ??= { pat: "dots", c: "" }; S.exp ??= {}; S.cu ??= {}; S.cd ??= {}; $("#pat").value = S.bg.pat;
     function view() { cvs.style.transform = `translate(${V.x}px,${V.y}px) scale(${V.k})`; bg() }
     function bg() {
       const b = S.bg || {}, c = b.p || "color-mix(in srgb,var(--ink) 22%,transparent)", s = 24 * V.k;
@@ -1130,9 +1158,34 @@
       sr.innerHTML = t ? Object.keys(P()).filter(i => (lab(i) + " " + P()[i].other + " " + P()[i].bio).toLowerCase().includes(t)).slice(0, 12).map(i => `<div data-hit="${i}">${esc(lab(i))}</div>`).join("") || "<div>No match</div>" : ""
     });
     $("#pat").onchange = e => { S.bg.pat = e.target.value; render() }; $("#bgc").oninput = e => { S.bg.c = e.target.value; render() }; $("#pc").oninput = e => { S.bg.p = e.target.value; render() };
+    // Collapse = hide relatives on one side of a person. S.cu[id]: everything on the far side of the person's parent link ("above");
+    // S.cd[id]: their descendants. View state only (not in S.people), so export/import/sync/undo ignore it.
+    let HC = { u: {}, d: {} }, UPOK = new Set();
+    const hid = () => {
+      const p = P(), ids = Object.keys(p), KM = {}, H = new Set(); HC = { u: {}, d: {} }; UPOK = new Set();
+      ids.forEach(i => KM[i] = []); ids.forEach(c => p[c].parents.forEach(a => KM[a] && KM[a].push(c)));
+      const nb = i => [...p[i].parents, ...p[i].spouses, ...KM[i]];
+      // everything reachable from x's parents without going back through x's parent link; null if the sides also meet elsewhere (cousin marriage)
+      const side = x => { const o = new Set(p[x].parents), q = [...o]; while (q.length) { const a = q.shift(); for (const b of nb(a)) { if (b === x) { if (p[x].parents.includes(a)) continue; return null } if (!o.has(b)) { o.add(b); q.push(b) } } } return o };
+      // descendants of x, plus married-in partners who belong only to that part
+      const down = x => { const D = new Set(), q = [...KM[x]]; while (q.length) { const a = q.shift(); if (!D.has(a)) { D.add(a); q.push(...KM[a]) } } if (D.has(x)) return null;
+        D.forEach(d => p[d].spouses.forEach(s => { if (s !== x && !p[x].spouses.includes(s) && !D.has(s) && KM[s].every(k => D.has(k)) && p[s].spouses.every(z => D.has(z))) D.add(s) })); return D };
+      ids.forEach(i => { if (p[i].parents.length && side(i)) UPOK.add(i) });
+      const seeds = new Set(), cu = Object.keys(S.cu || {}).filter(i => p[i]), cd = Object.keys(S.cd || {}).filter(i => p[i]);
+      cu.forEach(x => { const o = side(x); if (o) { o.forEach(y => seeds.add(y)); HC.u[x] = o.size } });
+      cd.forEach(x => { const o = down(x); if (o) { o.forEach(y => seeds.add(y)); HC.d[x] = o.size } });
+      if (!seeds.size) return H;
+      const prot = new Set(); [...cu, ...cd].forEach(x => { if (!seeds.has(x)) { prot.add(x); p[x].spouses.forEach(s => seeds.has(s) || prot.add(s)) } });
+      seeds.forEach(i => H.add(i));
+      // anyone left with only hidden neighbours is hidden too (e.g. a married-in partner's parents)
+      for (let ch = 1; ch;) { ch = 0; ids.forEach(i => { if (H.has(i) || prot.has(i)) return; const n = nb(i); if (n.length && n.every(z => H.has(z))) { H.add(i); ch = 1 } }) }
+      if (ids.every(i => H.has(i))) { S.cu = {}; S.cd = {}; HC = { u: {}, d: {} }; return new Set() }
+      return H
+    };
+    const pill = (d, n, attr, tip) => `<span class="pl ${d}${n != null ? " on" : ""}" ${attr} title="${tip}">${n != null ? "＋ " + n : "－"}</span>`;
     const VP = () => {
-      const p = P(), h = new Set(); if (VM !== "t" && VM !== "e") folds().forEach((C, x) => { if (!S.exp[x]) C.forEach(i => h.add(i)) });
-      if (!FS && !h.size) return p; const o = {}, ok = i => p[i] && !h.has(i) && (!FS || FS.has(i));
+      const p = P(), h = hid(); if (VM !== "t" && VM !== "e") folds().forEach((C, x) => { if (!S.exp[x]) C.forEach(i => h.add(i)) });
+      if (!h.size) return p; const o = {}, ok = i => p[i] && !h.has(i);
       Object.keys(p).forEach(i => { if (ok(i)) o[i] = { ...p[i], parents: p[i].parents.filter(ok), stepParents: (p[i].stepParents || []).filter(ok), spouses: p[i].spouses.filter(ok) } }); return o
     };
     // dates are stored as YYYY, YYYY-MM or YYYY-MM-DD; a leading "~" marks an approximate (circa) date
@@ -1245,7 +1298,7 @@
     addEventListener("pointerdown", e => { const h = e.target.closest(".lk"); if (!h) return; const r = h.closest(".n").getBoundingClientRect(), s = stg.getBoundingClientRect(), x = r.left + r.width / 2 - s.left, y = r.top + r.height / 2 - s.top; LK = h.dataset.lk;["x1", "x2"].forEach(k => rl.setAttribute(k, x));["y1", "y2"].forEach(k => rl.setAttribute(k, y)); rb.style.display = "block"; e.preventDefault() }, true);
     addEventListener("pointermove", e => { if (!LK) return; const s = stg.getBoundingClientRect(); rl.setAttribute("x2", e.clientX - s.left); rl.setAttribute("y2", e.clientY - s.top) });
     addEventListener("pointerup", e => { if (LK) lkEnd(e) });
-    addEventListener("click", e => { const t = e.target; if (!t.closest("#lm")) lm.hidden = true; if (!t.closest("#set") || t.closest("[data-a=expall],[data-a=imp]")) $("#set").open = false });
+    addEventListener("click", e => { const t = e.target; if (!t.closest("#lm")) lm.hidden = true; if (!t.closest("#set") || t.closest("[data-a=expall],[data-a=imp],[data-a=expcol]")) $("#set").open = false });
     // timeline: one bar per person with a birth year, packed into rows
     function tl(p, ids) {
       const Y = new Date().getFullYear(), PY = 8, R = [], und = [], pos = {}, rows = [];
