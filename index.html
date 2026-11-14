@@ -642,7 +642,10 @@
     .n.est{border-style:dashed}
     .yg{position:absolute;left:0;width:100%;height:0;border-top:1px dashed color-mix(in srgb,var(--ink) 18%,transparent);pointer-events:none}
     .yg span{position:absolute;left:3px;top:-15px;font-size:13px;color:var(--muted)}
-    .n { overflow: visible }
+    .n { overflow: visible; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none }
+    .n.src { outline: 3px dashed var(--pop); outline-offset: 3px }
+    .n.tgt { outline: 3px solid var(--pop); outline-offset: 3px; transform: rotate(calc(var(--r)*1deg)) scale(1.06) }
+    @media (pointer: coarse) { .lk { display: none } #lm button { padding: 8px 16px } }
 
     .pl {
       position: absolute;
@@ -1289,15 +1292,34 @@
     const rb = $("#rb"), rl = rb.firstElementChild, lm = $("#lm");
     // drag the ⊕ on a card onto another card to link them
     function lkEnd(e) {
-      const a = LK; LK = null; rb.style.display = "none"; moved = 9; const n = document.elementFromPoint(e.clientX, e.clientY)?.closest(".n"); if (!a || !n || n.dataset.id === a) return;
+      const a = LK; lkClear(); moved = 9; const n = document.elementFromPoint(e.clientX, e.clientY)?.closest(".n"); if (!a || !n || n.dataset.id === a) return;
       const b = n.dataset.id, dn = s => { const d = new Set([s]), q = [s]; while (q.length) kids(q.shift()).forEach(c => { if (!d.has(c)) { d.add(c); q.push(c) } }); return d },
         o = [["parents", "parent", dn(a).has(b)], ["children", "child", dn(b).has(a)], ["spouses", "spouse", 0], ["siblings", "sibling", 0]];
       lm.innerHTML = `<b>${esc(nm(b))} is ${esc(nm(a))}’s…</b>` + o.map(x => `<button data-lm="${x[0]}:${a}:${b}"${x[2] ? " disabled" : ""}>${x[1]}</button>`).join("");
       lm.style.left = Math.min(e.clientX, innerWidth - 210) + "px"; lm.style.top = Math.min(e.clientY, innerHeight - 200) + "px"; lm.hidden = false
     }
-    addEventListener("pointerdown", e => { const h = e.target.closest(".lk"); if (!h) return; const r = h.closest(".n").getBoundingClientRect(), s = stg.getBoundingClientRect(), x = r.left + r.width / 2 - s.left, y = r.top + r.height / 2 - s.top; LK = h.dataset.lk;["x1", "x2"].forEach(k => rl.setAttribute(k, x));["y1", "y2"].forEach(k => rl.setAttribute(k, y)); rb.style.display = "block"; e.preventDefault() }, true);
-    addEventListener("pointermove", e => { if (!LK) return; const s = stg.getBoundingClientRect(); rl.setAttribute("x2", e.clientX - s.left); rl.setAttribute("y2", e.clientY - s.top) });
-    addEventListener("pointerup", e => { if (LK) lkEnd(e) });
+    let LP = null;
+    function lkStart(id) {
+      const c = cvs.querySelector(`.n[data-id="${id}"]`); if (!c) return;
+      const r = c.getBoundingClientRect(), s = stg.getBoundingClientRect(), x = r.left + r.width / 2 - s.left, y = r.top + r.height / 2 - s.top;
+      LK = id; ["x1", "x2"].forEach(k => rl.setAttribute(k, x)); ["y1", "y2"].forEach(k => rl.setAttribute(k, y)); rb.style.display = "block"; c.classList.add("src")
+    }
+    const lkClear = () => { LK = null; rb.style.display = "none"; cvs.querySelectorAll(".src,.tgt").forEach(n => n.classList.remove("src", "tgt")) };
+    addEventListener("pointerdown", e => { const h = e.target.closest(".lk"); if (h) { lkStart(h.dataset.lk); e.preventDefault() } }, true);
+    // touch/pen: hold a card for a moment (without moving), then drag onto another card to link; moving early just pans
+    addEventListener("pointerdown", e => {
+      clearTimeout(LP && LP.t); LP = null; const c = e.target.closest && e.target.closest(".n");
+      if (!c || e.pointerType === "mouse" || e.target.closest("button,select,.lk,.pl") || ptr.size > 1) return;
+      LP = { x: e.clientX, y: e.clientY, t: setTimeout(() => { LP = null; if (ptr.size > 1) return; ptr.clear(); moved = 9; navigator.vibrate && navigator.vibrate(12); lkStart(c.dataset.id) }, 380) }
+    }, true);
+    addEventListener("contextmenu", e => { if (e.target.closest && e.target.closest(".n")) e.preventDefault() });
+    addEventListener("pointermove", e => {
+      if (LP && Math.hypot(e.clientX - LP.x, e.clientY - LP.y) > 10) { clearTimeout(LP.t); LP = null }
+      if (!LK) return; const s = stg.getBoundingClientRect(); rl.setAttribute("x2", e.clientX - s.left); rl.setAttribute("y2", e.clientY - s.top);
+      cvs.querySelectorAll(".tgt").forEach(n => n.classList.remove("tgt")); const n = document.elementFromPoint(e.clientX, e.clientY)?.closest(".n"); if (n && n.dataset.id !== LK) n.classList.add("tgt")
+    });
+    addEventListener("pointerup", e => { clearTimeout(LP && LP.t); LP = null; if (LK) lkEnd(e) });
+    addEventListener("pointercancel", () => { clearTimeout(LP && LP.t); LP = null; if (LK) lkClear() });
     addEventListener("click", e => { const t = e.target; if (!t.closest("#lm")) lm.hidden = true; if (!t.closest("#set") || t.closest("[data-a=expall],[data-a=imp],[data-a=expcol]")) $("#set").open = false });
     // timeline: one bar per person with a birth year, packed into rows
     function tl(p, ids) {
@@ -1345,6 +1367,12 @@
       });
       return { pos, w, h, html: o }
     }
+    // a click on empty space (not the panel, a card, a control or a dialog) closes the person panel; composedPath survives re-renders that detach the target
+    addEventListener("click", e => {
+      if (!sel || $("#pn").hidden) return;
+      if (e.composedPath().some(n => n.matches && n.matches("#pn,#lm,#io,#sr,.menu,.n,.tb,.ev,button,select,input,textarea,summary,label"))) return;
+      sel = null; render(); panel()
+    });
     clean(); last = JSON.stringify(S.people); render(); fit();
   </script>
 </body>
